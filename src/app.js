@@ -67,10 +67,11 @@ class IntervalTree {
 }
 
 // ── Sample data generator ─────────────────────────────────
-function generateSampleData(count = 5000) {
+function generateSampleData(count = 5000, avgDurationMin = 60) {
   const now = Date.now();
   const dayMs = 86_400_000;
   const range = 30 * dayMs;
+  const avgDurationMs = avgDurationMin * 60_000;
   const names = [
     'Alice Johnson', 'Bob Smith', 'Carol White', 'Dan Brown',
     'Eva Martinez', 'Frank Lee', 'Grace Kim', 'Hank Wilson',
@@ -87,7 +88,8 @@ function generateSampleData(count = 5000) {
   const data = [];
   for (let i = 0; i < count; i++) {
     const start = now + Math.random() * range;
-    const duration = 15 * 60_000 + Math.random() * 105 * 60_000;
+    // Duration varies 0.5x to 2.0x around the average
+    const duration = avgDurationMs * (0.5 + Math.random() * 1.5);
     const cat = categories[Math.floor(Math.random() * categories.length)];
     const svc = services[Math.floor(Math.random() * services.length)];
     const name = names[Math.floor(Math.random() * names.length)];
@@ -124,6 +126,7 @@ const App = (() => {
   const miniMapCanvas = document.getElementById('minimap');
   const miniMapCtx = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
   const countInput = document.getElementById('count-input');
+  const durationInput = document.getElementById('duration-input');
 
   // State
   let intervals = [];
@@ -757,7 +760,9 @@ const App = (() => {
       countInput.value = 5000;
       return;
     }
-    loadData(generateSampleData(Math.min(count, 50000)));
+    const avgDuration = parseInt(durationInput.value, 10);
+    const validDuration = avgDuration > 0 ? avgDuration : 60;
+    loadData(generateSampleData(Math.min(count, 50000), validDuration));
   });
 
   btnClear.addEventListener('click', () => {
@@ -808,7 +813,8 @@ const App = (() => {
     renderLegend();
 
     // Generate initial sample data
-    loadData(generateSampleData(3000));
+    const initialDuration = parseInt(durationInput.value, 10) || 60;
+    loadData(generateSampleData(3000, initialDuration));
   }
 
   return { init };
