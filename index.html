@@ -24,14 +24,11 @@
         </label>
         <label class="input-group">
           <span>Avg Duration (min):</span>
-          <input type="number" id="duration-input" value="60"/>
+          <input type="number" id="duration-input" value="60" min="1" max="1440" />
         </label>
         <button id="btn-generate" title="Generate sample data">Generate Data</button>
         <button id="btn-clear" title="Clear all data">Clear</button>
-        <label class="toggle">
-          <input type="checkbox" id="show-categories" checked />
-          <span>Show Categories</span>
-        </label>
+        <button id="btn-show-all" title="Show all categories">Show All</button>
       </div>
     </header>
 

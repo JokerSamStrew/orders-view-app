@@ -121,7 +121,7 @@ const App = (() => {
   const btnZoomOut = document.getElementById('zoom-out');
   const btnZoomReset = document.getElementById('zoom-reset');
   const zoomLevelEl = document.getElementById('zoom-level');
-  const showCatCheck = document.getElementById('show-categories');
+  const btnShowAll = document.getElementById('btn-show-all');
   const canvasWrapper = document.getElementById('canvas-wrapper');
   const miniMapCanvas = document.getElementById('minimap');
   const miniMapCtx = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
@@ -544,12 +544,14 @@ const App = (() => {
     return best;
   }
 
-  // ── Legend ──────────────────────────────────────────────
-  function renderLegend() {
+  // ── Legend (created once, toggled via class) ────────────
+  const legendItems = [];
+
+  function initLegend() {
     legendEl.innerHTML = '';
     for (const cat of CATEGORIES) {
       const item = document.createElement('div');
-      item.className = 'legend-item' + (visibleCategories.has(cat.name) ? '' : ' dimmed');
+      item.className = 'legend-item';
       item.innerHTML = `<span class="legend-swatch" style="background:${cat.color}"></span>${cat.name}`;
       item.addEventListener('click', () => {
         if (visibleCategories.has(cat.name)) {
@@ -562,6 +564,13 @@ const App = (() => {
         renderMiniMap();
       });
       legendEl.appendChild(item);
+      legendItems.push({ el: item, name: cat.name });
+    }
+  }
+
+  function renderLegend() {
+    for (const { el, name } of legendItems) {
+      el.classList.toggle('dimmed', !visibleCategories.has(name));
     }
   }
 
@@ -769,12 +778,8 @@ const App = (() => {
     loadData([]);
   });
 
-  showCatCheck.addEventListener('change', () => {
-    if (showCatCheck.checked) {
-      visibleCategories = new Set(CATEGORIES.map((c) => c.name));
-    } else {
-      visibleCategories.clear();
-    }
+  btnShowAll.addEventListener('click', () => {
+    visibleCategories = new Set(CATEGORIES.map((c) => c.name));
     renderLegend();
     render();
     renderMiniMap();
@@ -810,7 +815,7 @@ const App = (() => {
   function init() {
     window.addEventListener('resize', resize);
     resize();
-    renderLegend();
+    initLegend();
 
     // Generate initial sample data
     const initialDuration = parseInt(durationInput.value, 10) || 60;
