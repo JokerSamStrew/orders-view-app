@@ -30,18 +30,24 @@
     <!-- Legend -->
     <div id="legend" class="hidden"></div>
 
-    <!-- Canvas container -->
+    <!-- Main canvas -->
     <div id="canvas-wrapper">
       <canvas id="canvas"></canvas>
       <!-- Tooltip (positioned absolutely over canvas) -->
       <div id="tooltip" class="hidden"></div>
     </div>
 
+    <!-- Mini-map (overview) -->
+    <div id="minimap-wrapper">
+      <canvas id="minimap"></canvas>
+      <span id="time-range"></span>
+    </div>
+
     <!-- Zoom controls -->
     <div id="zoom-controls">
-      <button id="zoom-in" title="Zoom in">+</button>
-      <button id="zoom-reset" title="Reset view">⟲</button>
-      <button id="zoom-out" title="Zoom out">−</button>
+      <button id="zoom-in" title="Zoom in (+)">+</button>
+      <button id="zoom-reset" title="Reset view (0)">⟲</button>
+      <button id="zoom-out" title="Zoom out (−)">−</button>
       <span id="zoom-level">100%</span>
     </div>
   </div>

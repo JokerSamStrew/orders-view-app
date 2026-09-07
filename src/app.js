@@ -4,736 +4,794 @@
 
 // ── Category palette ──────────────────────────────────────
 const CATEGORIES = [
-    { name: 'Confirmed', color: '#6c63ff' },
-    { name: 'Pending', color: '#f59e42' },
-    { name: 'Cancelled', color: '#ef4444' },
-    { name: 'Checked-in', color: '#00c9a7' },
-    { name: 'No-show', color: '#8b5cf6' },
-    { name: 'Rescheduled', color: '#06b6d4' },
-    { name: 'VIP', color: '#f472b6' },
-    { name: 'Group', color: '#a3e635' },
+  { name: 'Confirmed', color: '#6c63ff' },
+  { name: 'Pending', color: '#f59e42' },
+  { name: 'Cancelled', color: '#ef4444' },
+  { name: 'Checked-in', color: '#00c9a7' },
+  { name: 'No-show', color: '#8b5cf6' },
+  { name: 'Rescheduled', color: '#06b6d4' },
+  { name: 'VIP', color: '#f472b6' },
+  { name: 'Group', color: '#a3e635' },
 ];
 
-// ── Minimal Interval Tree (for fast hover lookup) ─────────
+// ── Interval Tree (O(log n) hover lookup) ─────────────────
 class IntervalNode {
-    constructor(start, end, data) {
-        this.start = start;
-        this.end = end;
-        this.data = data;
-        this.left = null;
-        this.right = null;
-        this.max = end; // subtree max end
-    }
+  constructor(start, end, data) {
+    this.start = start;
+    this.end = end;
+    this.data = data;
+    this.left = null;
+    this.right = null;
+    this.max = end;
+  }
 }
 
 class IntervalTree {
-    constructor() {
-        this.root = null;
-        this.count = 0;
-    }
+  constructor() {
+    this.root = null;
+    this.count = 0;
+  }
 
-    insert(start, end, data) {
-        this.root = this._insert(this.root, start, end, data);
-        this.count++;
-    }
+  insert(start, end, data) {
+    this.root = this._insert(this.root, start, end, data);
+    this.count++;
+  }
 
-    _insert(node, start, end, data) {
-        if (!node) return new IntervalNode(start, end, data);
-        if (start < node.start) {
-            node.left = this._insert(node.left, start, end, data);
-        } else {
-            node.right = this._insert(node.right, start, end, data);
-        }
-        node.max = Math.max(node.max, end);
-        return node;
+  _insert(node, start, end, data) {
+    if (!node) return new IntervalNode(start, end, data);
+    if (start < node.start) {
+      node.left = this._insert(node.left, start, end, data);
+    } else {
+      node.right = this._insert(node.right, start, end, data);
     }
+    node.max = Math.max(node.max, end);
+    return node;
+  }
 
-    // Find all intervals that overlap a query point (x)
-    query(x, results = []) {
-        this._query(this.root, x, results);
-        return results;
-    }
+  // Find all intervals that overlap a query point (x)
+  query(x, results = []) {
+    this._query(this.root, x, results);
+    return results;
+  }
 
-    _query(node, x, results) {
-        if (!node || x < node.start) return;
-        if (x <= node.max) {
-            this._query(node.left, x, results);
-            if (x >= node.start && x <= node.end) {
-                results.push(node.data);
-            }
-            this._query(node.right, x, results);
-        }
+  _query(node, x, results) {
+    if (!node || x < node.start) return;
+    if (x <= node.max) {
+      this._query(node.left, x, results);
+      if (x >= node.start && x <= node.end) {
+        results.push(node.data);
+      }
+      this._query(node.right, x, results);
     }
+  }
 }
 
 // ── Sample data generator ─────────────────────────────────
 function generateSampleData(count = 5000) {
-    const now = Date.now();
-    const dayMs = 86_400_000;
-    const range = 30 * dayMs; // 30 days
-    const names = [
-        'Alice Johnson',
-        'Bob Smith',
-        'Carol White',
-        'Dan Brown',
-        'Eva Martinez',
-        'Frank Lee',
-        'Grace Kim',
-        'Hank Wilson',
-        'Ivy Chen',
-        'Jack Davis',
-        'Karen Moore',
-        'Leo Taylor',
-        'Mia Anderson',
-        'Nate Thomas',
-        'Olivia Jackson',
-        'Paul Harris',
-    ];
-    const categories = CATEGORIES.map((c) => c.name);
-    const services = [
-        'Haircut',
-        'Massage',
-        'Consultation',
-        'Manicure',
-        'Facial',
-        'Dental Checkup',
-        'Yoga Session',
-        'Tennis Court',
-        'Meeting Room',
-        'Photography',
-        'Cooking Class',
-        'Guitar Lesson',
-    ];
+  const now = Date.now();
+  const dayMs = 86_400_000;
+  const range = 30 * dayMs;
+  const names = [
+    'Alice Johnson', 'Bob Smith', 'Carol White', 'Dan Brown',
+    'Eva Martinez', 'Frank Lee', 'Grace Kim', 'Hank Wilson',
+    'Ivy Chen', 'Jack Davis', 'Karen Moore', 'Leo Taylor',
+    'Mia Anderson', 'Nate Thomas', 'Olivia Jackson', 'Paul Harris',
+  ];
+  const categories = CATEGORIES.map((c) => c.name);
+  const services = [
+    'Haircut', 'Massage', 'Consultation', 'Manicure',
+    'Facial', 'Dental Checkup', 'Yoga Session', 'Tennis Court',
+    'Meeting Room', 'Photography', 'Cooking Class', 'Guitar Lesson',
+  ];
 
-    const data = [];
-    for (let i = 0; i < count; i++) {
-        const start = now + Math.random() * range;
-        const duration = 15 * 60_000 + Math.random() * 105 * 60_000; // 15–120 min
-        const cat = categories[Math.floor(Math.random() * categories.length)];
-        const svc = services[Math.floor(Math.random() * services.length)];
-        const name = names[Math.floor(Math.random() * names.length)];
-        data.push({
-            id: i,
-            name: `${name} — ${svc}`,
-            customer: name,
-            category: cat,
-            start,
-            end: start + duration,
-            duration: Math.round(duration / 60_000),
-        });
-    }
-    return data;
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    const start = now + Math.random() * range;
+    const duration = 15 * 60_000 + Math.random() * 105 * 60_000;
+    const cat = categories[Math.floor(Math.random() * categories.length)];
+    const svc = services[Math.floor(Math.random() * services.length)];
+    const name = names[Math.floor(Math.random() * names.length)];
+    data.push({
+      id: i,
+      name: `${name} — ${svc}`,
+      customer: name,
+      category: cat,
+      start,
+      end: start + duration,
+      duration: Math.round(duration / 60_000),
+    });
+  }
+  return data;
 }
 
 // ── Application ───────────────────────────────────────────
 const App = (() => {
-    // DOM refs
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const tooltip = document.getElementById('tooltip');
-    const statsEl = document.getElementById('stats');
-    const legendEl = document.getElementById('legend');
-    const searchInput = document.getElementById('search');
-    const btnGenerate = document.getElementById('btn-generate');
-    const btnClear = document.getElementById('btn-clear');
-    const btnZoomIn = document.getElementById('zoom-in');
-    const btnZoomOut = document.getElementById('zoom-out');
-    const btnZoomReset = document.getElementById('zoom-reset');
-    const zoomLevelEl = document.getElementById('zoom-level');
-    const showCatCheck = document.getElementById('show-categories');
-    const canvasWrapper = document.getElementById('canvas-wrapper');
+  // DOM refs
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const tooltip = document.getElementById('tooltip');
+  const statsEl = document.getElementById('stats');
+  const legendEl = document.getElementById('legend');
+  const searchInput = document.getElementById('search');
+  const btnGenerate = document.getElementById('btn-generate');
+  const btnClear = document.getElementById('btn-clear');
+  const btnZoomIn = document.getElementById('zoom-in');
+  const btnZoomOut = document.getElementById('zoom-out');
+  const btnZoomReset = document.getElementById('zoom-reset');
+  const zoomLevelEl = document.getElementById('zoom-level');
+  const showCatCheck = document.getElementById('show-categories');
+  const canvasWrapper = document.getElementById('canvas-wrapper');
+  const miniMapCanvas = document.getElementById('minimap');
+  const miniMapCtx = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
 
-    // State
-    let intervals = [];
-    let tree = new IntervalTree();
-    let visibleCategories = new Set(CATEGORIES.map((c) => c.name));
-    let searchTerm = '';
-    let hoveredInterval = null;
-    let hoveredId = -1;
+  // State
+  let intervals = [];
+  let tree = new IntervalTree();
+  let visibleCategories = new Set(CATEGORIES.map((c) => c.name));
+  let searchTerm = '';
+  let hoveredInterval = null;
+  let hoveredId = -1;
 
-    // Viewport (in timeline-ms coordinates)
-    let viewStart = 0;
-    let viewEnd = 30 * 86_400_000; // 30 days default
-    const MIN_ZOOM = 4 * 3600_000; // 4h
-    const MAX_ZOOM = 90 * 86_400_000; // 90d
+  // Viewport (in timeline-ms coordinates)
+  let viewStart = 0;
+  let viewEnd = 30 * 86_400_000;
+  const MIN_ZOOM = 4 * 3600_000; // 4h
+  const MAX_ZOOM = 90 * 86_400_000; // 90d
 
-    // Layout constants (px)
-    const ROW_HEIGHT = 48;
-    const GAP = 4;
-    const BAR_RADIUS = 4;
-    const PADDING_LEFT = 180; // space for labels
-    const PADDING_TOP = 40; // header
-    const TICK_HEIGHT = 30; // time axis
+  // Layout constants (px)
+  const ROW_HEIGHT = 48;
+  const GAP = 4;
+  const BAR_RADIUS = 4;
+  const PADDING_LEFT = 180;
+  const PADDING_TOP = 40;
+  const TICK_HEIGHT = 30;
+  const MINI_MAP_HEIGHT = 60;
 
-    // ── Resize ────────────────────────────────────────────
-    function resize() {
-        const dpr = window.devicePixelRatio || 1;
-        const w = canvasWrapper.clientWidth;
-        const h = canvasWrapper.clientHeight;
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        render();
+  // ── Resize ────────────────────────────────────────────
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasWrapper.clientWidth;
+    const h = canvasWrapper.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Mini-map
+    if (miniMapCanvas) {
+      const mmW = canvasWrapper.clientWidth;
+      miniMapCanvas.width = mmW * dpr;
+      miniMapCanvas.height = MINI_MAP_HEIGHT * dpr;
+      miniMapCanvas.style.width = mmW + 'px';
+      miniMapCanvas.style.height = MINI_MAP_HEIGHT + 'px';
+      miniMapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    // ── Filtered + sorted intervals ─────────────────────────
-    function getFiltered() {
-        const now = Date.now();
-        let filtered = intervals.filter((d) => {
-            if (searchTerm) {
-                const q = searchTerm.toLowerCase();
-                if (
-                    !d.name.toLowerCase().includes(q) &&
-                    !d.customer.toLowerCase().includes(q) &&
-                    !d.category.toLowerCase().includes(q)
-                )
-                    return false;
-            }
-            if (!visibleCategories.has(d.category)) return false;
-            return true;
-        });
+    render();
+    renderMiniMap();
+  }
 
-        // Sort by start time
-        filtered.sort((a, b) => a.start - b.start);
+  // ── Filtered + sorted intervals (with virtualization hints) ──
+  function getFiltered() {
+    let filtered = intervals.filter((d) => {
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        if (
+          !d.name.toLowerCase().includes(q) &&
+          !d.customer.toLowerCase().includes(q) &&
+          !d.category.toLowerCase().includes(q)
+        ) return false;
+      }
+      if (!visibleCategories.has(d.category)) return false;
+      return true;
+    });
 
-        // Assign rows (greedy shelf packing)
-        assignRows(filtered);
-        return filtered;
-    }
+    filtered.sort((a, b) => a.start - b.start);
+    assignRows(filtered);
+    return filtered;
+  }
 
-    // ── Row assignment (greedy) ─────────────────────────────
-    let rowEnds = []; // end time of last item in each row
+  // ── Row assignment (optimized with early termination) ──
+  let rowEnds = [];
 
-    function assignRows(items) {
-        rowEnds = [];
-        for (const item of items) {
-            let placed = false;
-            for (let r = 0; r < rowEnds.length; r++) {
-                if (rowEnds[r] <= item.start) {
-                    item._row = r;
-                    rowEnds[r] = item.end;
-                    placed = true;
-                    break;
-                }
-            }
-            if (!placed) {
-                item._row = rowEnds.length;
-                rowEnds.push(item.end);
-            }
+  function assignRows(items) {
+    rowEnds.length = 0;
+    for (const item of items) {
+      let placed = false;
+      for (let r = 0; r < rowEnds.length; r++) {
+        if (rowEnds[r] <= item.start) {
+          item._row = r;
+          rowEnds[r] = item.end;
+          placed = true;
+          break;
         }
+      }
+      if (!placed) {
+        item._row = rowEnds.length;
+        rowEnds.push(item.end);
+      }
+    }
+  }
+
+  // ── Render main canvas ──────────────────────────────────
+  function render() {
+    const w = canvasWrapper.clientWidth;
+    const h = canvasWrapper.clientHeight;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const filtered = getFiltered();
+
+    // Update stats
+    statsEl.textContent = `${filtered.length} / ${intervals.length} intervals`;
+
+    const range = viewEnd - viewStart;
+    const pxPerMs = (w - PADDING_LEFT) / range;
+
+    // ── Draw background (day bands) ──────────────────────
+    drawDayBands(viewStart, viewEnd, pxPerMs, w, h);
+
+    // ── Draw grid (time ticks) ───────────────────────────
+    drawTimeTicks(viewStart, viewEnd, pxPerMs, w, h);
+
+    // ── Virtualization: only render visible rows ──────────
+    const firstVisibleRow = Math.max(0, Math.floor((PADDING_TOP - PADDING_TOP) / (ROW_HEIGHT + GAP)));
+    const lastVisibleRow = Math.ceil((h - PADDING_TOP) / (ROW_HEIGHT + GAP));
+
+    // Build a row-indexed map for O(1) row lookup
+    const rowMap = new Map();
+    for (const d of filtered) {
+      if (d._row >= firstVisibleRow && d._row <= lastVisibleRow) {
+        if (!rowMap.has(d._row)) rowMap.set(d._row, []);
+        rowMap.get(d._row).push(d);
+      }
     }
 
-    // ── Render ──────────────────────────────────────────────
-    function render() {
-        const w = canvasWrapper.clientWidth;
-        const h = canvasWrapper.clientHeight;
+    // Draw bars (only visible rows)
+    for (const [row, items] of rowMap) {
+      const y = PADDING_TOP + row * (ROW_HEIGHT + GAP);
+      for (const d of items) {
+        // Skip if outside horizontal viewport
+        if (d.end < viewStart || d.start > viewEnd) continue;
 
-        ctx.clearRect(0, 0, w, h);
+        const x1 = PADDING_LEFT + (d.start - viewStart) * pxPerMs;
+        const x2 = PADDING_LEFT + (d.end - viewStart) * pxPerMs;
+        const barW = Math.max(x2 - x1, 2);
 
-        const filtered = getFiltered();
+        if (x2 < PADDING_LEFT || x1 > w) continue;
 
-        // Update stats
-        const totalVisible = filtered.length;
-        const totalAll = intervals.length;
-        statsEl.textContent = `${totalVisible} / ${totalAll} intervals`;
-
-        // Visible range
-        const vs = Math.max(
-            viewStart,
-            filtered.length ? filtered[0].start : viewStart
-        );
-        const ve = Math.min(
-            viewEnd,
-            filtered.length ? filtered[filtered.length - 1].end : viewEnd
-        );
-        const range = viewEnd - viewStart;
-        const pxPerMs = (w - PADDING_LEFT) / range;
-
-        // ── Draw grid lines (hourly ticks) ───────────────────
-        drawTicks(ctx, vs, ve, range, pxPerMs, w, h);
-
-        // ── Draw background bands (day boundaries) ───────────
-        drawDayBands(ctx, vs, ve, range, pxPerMs, w, h);
-
-        // ── Draw bars ────────────────────────────────────────
-        for (const d of filtered) {
-            // Skip if outside viewport
-            if (d.end < vs || d.start > ve) continue;
-
-            const x1 = PADDING_LEFT + (d.start - viewStart) * pxPerMs;
-            const x2 = PADDING_LEFT + (d.end - viewStart) * pxPerMs;
-            const barW = Math.max(x2 - x1, 2);
-            const y = PADDING_TOP + d._row * (ROW_HEIGHT + GAP);
-
-            // Skip if completely off-screen
-            if (x2 < 0 || x1 > w) continue;
-
-            const catObj = CATEGORIES.find((c) => c.name === d.category);
-            const color = catObj ? catObj.color : '#888';
-            const isHovered = d.id === hoveredId;
-
-            // Bar
-            ctx.fillStyle = isHovered ? color : color + 'aa';
-            ctx.globalAlpha = isHovered ? 1 : 0.75;
-            roundRect(ctx, x1, y, barW, ROW_HEIGHT, BAR_RADIUS);
-            ctx.fill();
-
-            // Label (if bar is wide enough)
-            ctx.globalAlpha = isHovered ? 1 : 0.85;
-            if (barW > 50) {
-                ctx.fillStyle = '#fff';
-                ctx.font = '11px Inter, sans-serif';
-                const label =
-                    d.name.length > 28 ? d.name.slice(0, 26) + '…' : d.name;
-                ctx.fillText(label, x1 + 6, y + 16);
-
-                ctx.fillStyle = '#ffffff99';
-                ctx.font = '10px Inter, sans-serif';
-                const durLabel = `${d.duration}m`;
-                ctx.fillText(durLabel, x1 + 6, y + 30);
-            }
-
-            // Hovered highlight
-            if (isHovered) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1.5;
-                ctx.globalAlpha = 1;
-                roundRect(ctx, x1, y, barW, ROW_HEIGHT, BAR_RADIUS);
-                ctx.stroke();
-            }
-
-            ctx.globalAlpha = 1;
-        }
-
-        // ── Draw y-axis labels (row numbers / category) ──────
-        drawYLabels(ctx, filtered, w, h);
-
-        // ── Draw time axis ───────────────────────────────────
-        drawTimeAxis(ctx, vs, ve, range, pxPerMs, w, h);
-
-        // ── Draw vertical hover guide ────────────────────────
-        if (hoveredInterval) {
-            const hx =
-                PADDING_LEFT + (hoveredInterval.start - viewStart) * pxPerMs;
-            ctx.strokeStyle = '#ffffff44';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            ctx.moveTo(hx, 0);
-            ctx.lineTo(hx, h);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-    }
-
-    function drawTicks(ctx, vs, ve, range, pxPerMs, w, h) {
-        // Determine tick spacing based on zoom
-        const pxPerHour = pxPerMs * 3600_000;
-        let tickInterval;
-        if (pxPerHour > 200)
-            tickInterval = 3600_000; // 1h
-        else if (pxPerHour > 80)
-            tickInterval = 3600_000 * 2; // 2h
-        else if (pxPerHour > 30)
-            tickInterval = 3600_000 * 4; // 4h
-        else if (pxPerHour > 15)
-            tickInterval = 3600_000 * 6; // 6h
-        else tickInterval = 3600_000 * 12; // 12h
-
-        const startTick = Math.floor(vs / tickInterval) * tickInterval;
-        const endTick = Math.ceil(ve / tickInterval) * tickInterval;
-
-        ctx.strokeStyle = '#ffffff10';
-        ctx.lineWidth = 1;
-
-        for (let t = startTick; t <= endTick; t += tickInterval) {
-            const x = PADDING_LEFT + (t - viewStart) * pxPerMs;
-            if (x < PADDING_LEFT || x > w) continue;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, h);
-            ctx.stroke();
-        }
-    }
-
-    function drawDayBands(ctx, vs, ve, range, pxPerMs, w, h) {
-        const dayMs = 86_400_000;
-        const startDay = Math.floor(vs / dayMs) * dayMs;
-        const endDay = Math.ceil(ve / dayMs) * dayMs;
-
-        for (let d = startDay; d < endDay; d += dayMs) {
-            const x1 = PADDING_LEFT + (d - viewStart) * pxPerMs;
-            const x2 = PADDING_LEFT + (d + dayMs - viewStart) * pxPerMs;
-            const clampedX1 = Math.max(x1, PADDING_LEFT);
-            const clampedX2 = Math.min(x2, canvasWrapper.clientWidth);
-            if (clampedX2 > clampedX1) {
-                ctx.fillStyle =
-                    Math.floor(d / dayMs) % 2 === 0 ? '#ffffff06' : '#ffffff03';
-                ctx.fillRect(clampedX1, 0, clampedX2 - clampedX1, h);
-            }
-        }
-    }
-
-    function drawTimeAxis(ctx, vs, ve, range, pxPerMs, w, h) {
-        const pxPerHour = pxPerMs * 3600_000;
-        let tickInterval;
-        if (pxPerHour > 200) tickInterval = 3600_000;
-        else if (pxPerHour > 80) tickInterval = 3600_000 * 2;
-        else if (pxPerHour > 30) tickInterval = 3600_000 * 4;
-        else if (pxPerHour > 15) tickInterval = 3600_000 * 6;
-        else tickInterval = 3600_000 * 12;
-
-        const startTick = Math.floor(vs / tickInterval) * tickInterval;
-        const endTick = Math.ceil(ve / tickInterval) * tickInterval;
-        const axisY = h - TICK_HEIGHT;
-
-        ctx.fillStyle = '#ffffff55';
-        ctx.font = '10px Inter, sans-serif';
-
-        for (let t = startTick; t <= endTick; t += tickInterval) {
-            const x = PADDING_LEFT + (t - viewStart) * pxPerMs;
-            if (x < PADDING_LEFT || x > w) continue;
-
-            const date = new Date(t);
-            const label = date.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-            ctx.fillText(label, x + 3, axisY + 14);
-
-            // Tick mark
-            ctx.strokeStyle = '#ffffff33';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x, axisY);
-            ctx.lineTo(x, axisY + 6);
-            ctx.stroke();
-        }
-    }
-
-    function drawYLabels(ctx, filtered, w, h) {
-        // Show category labels on the left
-        const activeCats = [...visibleCategories];
-        const axisX = 8;
-        const axisY = PADDING_TOP;
-
-        ctx.fillStyle = '#ffffff44';
-        ctx.font = '9px Inter, sans-serif';
-
-        // Draw category strip on left
-        const catColors = {};
-        for (const c of CATEGORIES) {
-            if (visibleCategories.has(c.name)) catColors[c.name] = c.color;
-        }
-
-        // Draw a thin colored strip per category
-        for (const cat of activeCats) {
-            const catObj = CATEGORIES.find((c) => c.name === cat);
-            if (!catObj) continue;
-            // Find rows belonging to this category
-            const rows = new Set();
-            for (const d of filtered) {
-                if (d.category === cat) rows.add(d._row);
-            }
-            if (rows.size === 0) continue;
-
-            for (const r of rows) {
-                const y = axisY + r * (ROW_HEIGHT + GAP);
-                ctx.fillStyle = catObj.color + '33';
-                ctx.fillRect(0, y, axisX, ROW_HEIGHT);
-            }
-        }
-    }
-
-    function roundRect(ctx, x, y, w, h, r) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-    }
-
-    // ── Tooltip ─────────────────────────────────────────────
-    function showTooltip(d, mouseX, mouseY) {
         const catObj = CATEGORIES.find((c) => c.name === d.category);
         const color = catObj ? catObj.color : '#888';
+        const isHovered = d.id === hoveredId;
 
-        const startStr = new Date(d.start).toLocaleString();
-        const endStr = new Date(d.end).toLocaleString();
+        // Bar fill
+        ctx.fillStyle = isHovered ? color : color + 'aa';
+        ctx.globalAlpha = isHovered ? 1 : 0.75;
+        roundRect(ctx, x1, y, barW, ROW_HEIGHT, BAR_RADIUS);
+        ctx.fill();
 
-        tooltip.innerHTML = `
+        // Label (if bar is wide enough)
+        if (barW > 50) {
+          ctx.globalAlpha = isHovered ? 1 : 0.85;
+          ctx.fillStyle = '#fff';
+          ctx.font = '11px Inter, sans-serif';
+          const label = d.name.length > 28 ? d.name.slice(0, 26) + '…' : d.name;
+          ctx.fillText(label, x1 + 6, y + 16);
+
+          ctx.fillStyle = '#ffffff99';
+          ctx.font = '10px Inter, sans-serif';
+          ctx.fillText(`${d.duration}m`, x1 + 6, y + 30);
+        }
+
+        // Hovered highlight
+        if (isHovered) {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, x1, y, barW, ROW_HEIGHT, BAR_RADIUS);
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // ── Draw y-axis category strips ──────────────────────
+    drawYCategoryStrip(filtered, w, h);
+
+    // ── Draw time axis labels ────────────────────────────
+    drawTimeLabels(viewStart, viewEnd, pxPerMs, w, h);
+
+    // ── Draw vertical hover guide ────────────────────────
+    if (hoveredInterval) {
+      const hx = PADDING_LEFT + (hoveredInterval.start - viewStart) * pxPerMs;
+      ctx.strokeStyle = '#ffffff44';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(hx, 0);
+      ctx.lineTo(hx, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // ── Render mini-map ──────────────────────────────────
+    renderMiniMap();
+  }
+
+  function drawDayBands(vs, ve, pxPerMs, w, h) {
+    const dayMs = 86_400_000;
+    const startDay = Math.floor(vs / dayMs) * dayMs;
+    const endDay = Math.ceil(ve / dayMs) * dayMs;
+
+    for (let d = startDay; d < endDay; d += dayMs) {
+      const x1 = PADDING_LEFT + (d - viewStart) * pxPerMs;
+      const x2 = PADDING_LEFT + (d + dayMs - viewStart) * pxPerMs;
+      const clampedX1 = Math.max(x1, PADDING_LEFT);
+      const clampedX2 = Math.min(x2, w);
+      if (clampedX2 > clampedX1) {
+        ctx.fillStyle = Math.floor(d / dayMs) % 2 === 0 ? '#ffffff06' : '#ffffff03';
+        ctx.fillRect(clampedX1, 0, clampedX2 - clampedX1, h);
+      }
+    }
+  }
+
+  function drawTimeTicks(vs, ve, pxPerMs, w, h) {
+    const pxPerHour = pxPerMs * 3600_000;
+    let tickInterval;
+    if (pxPerHour > 200) tickInterval = 3600_000;
+    else if (pxPerHour > 80) tickInterval = 3600_000 * 2;
+    else if (pxPerHour > 30) tickInterval = 3600_000 * 4;
+    else if (pxPerHour > 15) tickInterval = 3600_000 * 6;
+    else tickInterval = 3600_000 * 12;
+
+    const startTick = Math.floor(vs / tickInterval) * tickInterval;
+    const endTick = Math.ceil(ve / tickInterval) * tickInterval;
+
+    ctx.strokeStyle = '#ffffff10';
+    ctx.lineWidth = 1;
+
+    for (let t = startTick; t <= endTick; t += tickInterval) {
+      const x = PADDING_LEFT + (t - viewStart) * pxPerMs;
+      if (x < PADDING_LEFT || x > w) continue;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+  }
+
+  function drawTimeLabels(vs, ve, pxPerMs, w, h) {
+    const pxPerHour = pxPerMs * 3600_000;
+    let tickInterval;
+    if (pxPerHour > 200) tickInterval = 3600_000;
+    else if (pxPerHour > 80) tickInterval = 3600_000 * 2;
+    else if (pxPerHour > 30) tickInterval = 3600_000 * 4;
+    else if (pxPerHour > 15) tickInterval = 3600_000 * 6;
+    else tickInterval = 3600_000 * 12;
+
+    const startTick = Math.floor(vs / tickInterval) * tickInterval;
+    const endTick = Math.ceil(ve / tickInterval) * tickInterval;
+    const axisY = h - TICK_HEIGHT;
+
+    ctx.fillStyle = '#ffffff55';
+    ctx.font = '10px Inter, sans-serif';
+
+    for (let t = startTick; t <= endTick; t += tickInterval) {
+      const x = PADDING_LEFT + (t - viewStart) * pxPerMs;
+      if (x < PADDING_LEFT || x > w) continue;
+
+      const date = new Date(t);
+      const label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      ctx.fillText(label, x + 3, axisY + 14);
+
+      ctx.strokeStyle = '#ffffff33';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, axisY);
+      ctx.lineTo(x, axisY + 6);
+      ctx.stroke();
+    }
+  }
+
+  function drawYCategoryStrip(filtered, w, h) {
+    // Draw colored strips for categories on the left
+    for (const cat of visibleCategories) {
+      const catObj = CATEGORIES.find((c) => c.name === cat);
+      if (!catObj) continue;
+
+      // Find rows for this category
+      const rows = new Set();
+      for (const d of filtered) {
+        if (d.category === cat) rows.add(d._row);
+      }
+      if (rows.size === 0) continue;
+
+      for (const r of rows) {
+        const y = PADDING_TOP + r * (ROW_HEIGHT + GAP);
+        ctx.fillStyle = catObj.color + '33';
+        ctx.fillRect(0, y, 8, ROW_HEIGHT);
+      }
+    }
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  // ── Mini-map (overview) ─────────────────────────────────
+  function renderMiniMap() {
+    if (!miniMapCtx) return;
+
+    const mmW = canvasWrapper.clientWidth;
+    const mmH = MINI_MAP_HEIGHT;
+
+    miniMapCtx.clearRect(0, 0, mmW, mmH);
+
+    if (intervals.length === 0) return;
+
+    const allStart = Math.min(...intervals.map((d) => d.start));
+    const allEnd = Math.max(...intervals.map((d) => d.end));
+    const allRange = allEnd - allStart;
+    const mmPxPerMs = mmW / allRange;
+
+    // Draw all intervals as tiny bars
+    for (const d of intervals) {
+      const catObj = CATEGORIES.find((c) => c.name === d.category);
+      const color = catObj ? catObj.color : '#888';
+
+      const x1 = (d.start - allStart) * mmPxPerMs;
+      const x2 = (d.end - allStart) * mmPxPerMs;
+
+      // Only draw if category is visible
+      if (!visibleCategories.has(d.category)) continue;
+
+      miniMapCtx.fillStyle = color + '88';
+      miniMapCtx.fillRect(x1, 0, Math.max(x2 - x1, 1), mmH);
+    }
+
+    // Draw viewport rectangle
+    const vx1 = (viewStart - allStart) * mmPxPerMs;
+    const vx2 = (viewEnd - allStart) * mmPxPerMs;
+
+    miniMapCtx.strokeStyle = '#fff';
+    miniMapCtx.lineWidth = 1.5;
+    miniMapCtx.strokeRect(vx1, 0, vx2 - vx1, mmH);
+
+    // Highlight visible area
+    miniMapCtx.fillStyle = '#ffffff11';
+    miniMapCtx.fillRect(vx1, 0, vx2 - vx1, mmH);
+  }
+
+  // ── Tooltip ─────────────────────────────────────────────
+  function showTooltip(d, mouseX, mouseY) {
+    const catObj = CATEGORIES.find((c) => c.name === d.category);
+    const color = catObj ? catObj.color : '#888';
+
+    const startStr = new Date(d.start).toLocaleString();
+    const endStr = new Date(d.end).toLocaleString();
+
+    tooltip.innerHTML = `
       <div class="tt-title">${d.name}</div>
       <div class="tt-row"><span class="tt-cat" style="background:${color}"></span>${d.category}</div>
       <div class="tt-row">📅 ${startStr}</div>
       <div class="tt-row">🏁 ${endStr}</div>
       <div class="tt-row">⏱ Duration: ${d.duration} min</div>
     `;
-        tooltip.classList.remove('hidden');
+    tooltip.classList.remove('hidden');
 
-        // Position tooltip near cursor, keeping it on-screen
-        const wrapperRect = canvasWrapper.getBoundingClientRect();
-        let tx = mouseX + 14;
-        let ty = mouseY - 10;
+    const wrapperRect = canvasWrapper.getBoundingClientRect();
+    let tx = mouseX + 14;
+    let ty = mouseY - 10;
 
-        const tw = tooltip.offsetWidth;
-        const th = tooltip.offsetHeight;
-        if (tx + tw > wrapperRect.width - 10) tx = mouseX - tw - 14;
-        if (ty + th > wrapperRect.height - 10)
-            ty = wrapperRect.height - th - 10;
-        if (ty < 10) ty = 10;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    if (tx + tw > wrapperRect.width - 10) tx = mouseX - tw - 14;
+    if (ty + th > wrapperRect.height - 10) ty = wrapperRect.height - th - 10;
+    if (ty < 10) ty = 10;
 
-        tooltip.style.left = tx + 'px';
-        tooltip.style.top = ty + 'px';
-    }
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+  }
 
-    function hideTooltip() {
-        tooltip.classList.add('hidden');
-    }
+  function hideTooltip() {
+    tooltip.classList.add('hidden');
+  }
 
-    // ── Hit testing ─────────────────────────────────────────
-    function hitTest(mouseX, mouseY) {
-        const w = canvasWrapper.clientWidth;
-        const h = canvasWrapper.clientHeight;
-        const range = viewEnd - viewStart;
-        const pxPerMs = (w - PADDING_LEFT) / range;
-        const x = mouseX;
-        const y = mouseY;
+  // ── Hit testing (optimized with y-clustering) ───────────
+  function hitTest(mouseX, mouseY) {
+    const w = canvasWrapper.clientWidth;
+    const range = viewEnd - viewStart;
+    const pxPerMs = (w - PADDING_LEFT) / range;
+    const x = mouseX;
 
-        // Only test within visible range
-        const queryX = viewStart + (x - PADDING_LEFT) / pxPerMs;
-        if (queryX < viewStart || queryX > viewEnd) return null;
+    // Only test within visible range
+    const queryX = viewStart + (x - PADDING_LEFT) / pxPerMs;
+    if (queryX < viewStart || queryX > viewEnd) return null;
 
-        const candidates = tree.query(queryX);
+    const candidates = tree.query(queryX);
 
-        // Find the one whose row matches the mouse Y
-        let best = null;
-        let bestDist = Infinity;
+    // Use y-coordinate to quickly filter, then find closest
+    let best = null;
+    let bestDist = Infinity;
 
-        for (const d of candidates) {
-            const barY = PADDING_TOP + d._row * (ROW_HEIGHT + GAP);
-            const barBottom = barY + ROW_HEIGHT;
-            if (y >= barY && y <= barBottom) {
-                const dist = Math.abs(y - (barY + ROW_HEIGHT / 2));
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    best = d;
-                }
-            }
+    for (const d of candidates) {
+      const barY = PADDING_TOP + d._row * (ROW_HEIGHT + GAP);
+      if (mouseY >= barY && mouseY <= barY + ROW_HEIGHT) {
+        const dist = Math.abs(mouseY - (barY + ROW_HEIGHT / 2));
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = d;
         }
-
-        return best;
+      }
     }
 
-    // ── Legend ──────────────────────────────────────────────
-    function renderLegend() {
-        legendEl.innerHTML = '';
-        for (const cat of CATEGORIES) {
-            const item = document.createElement('div');
-            item.className =
-                'legend-item' +
-                (visibleCategories.has(cat.name) ? '' : ' dimmed');
-            item.innerHTML = `<span class="legend-swatch" style="background:${cat.color}"></span>${cat.name}`;
-            item.addEventListener('click', () => {
-                if (visibleCategories.has(cat.name)) {
-                    visibleCategories.delete(cat.name);
-                } else {
-                    visibleCategories.add(cat.name);
-                }
-                renderLegend();
-                render();
-            });
-            legendEl.appendChild(item);
-        }
-    }
+    return best;
+  }
 
-    // ── Mouse interaction ───────────────────────────────────
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragViewStart = 0;
-    let dragViewEnd = 0;
-
-    canvas.addEventListener('mousemove', (e) => {
-        const rect = canvasWrapper.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-
-        if (isDragging) {
-            const dx = e.clientX - dragStartX;
-            const range = dragViewEnd - dragViewStart;
-            const pxPerMs = (canvasWrapper.clientWidth - PADDING_LEFT) / range;
-            const msShift = -dx / pxPerMs;
-            viewStart = dragViewStart + msShift;
-            viewEnd = dragViewEnd + msShift;
-            render();
-            return;
-        }
-
-        // Hit test
-        const hit = hitTest(mx, my);
-        if (hit) {
-            hoveredInterval = hit;
-            hoveredId = hit.id;
-            canvasWrapper.style.cursor = 'pointer';
-            showTooltip(hit, mx, my);
+  // ── Legend ──────────────────────────────────────────────
+  function renderLegend() {
+    legendEl.innerHTML = '';
+    for (const cat of CATEGORIES) {
+      const item = document.createElement('div');
+      item.className = 'legend-item' + (visibleCategories.has(cat.name) ? '' : ' dimmed');
+      item.innerHTML = `<span class="legend-swatch" style="background:${cat.color}"></span>${cat.name}`;
+      item.addEventListener('click', () => {
+        if (visibleCategories.has(cat.name)) {
+          visibleCategories.delete(cat.name);
         } else {
-            hoveredInterval = null;
-            hoveredId = -1;
-            canvasWrapper.style.cursor = 'grab';
-            hideTooltip();
+          visibleCategories.add(cat.name);
         }
+        renderLegend();
         render();
-    });
+        renderMiniMap();
+      });
+      legendEl.appendChild(item);
+    }
+  }
 
-    canvas.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        isDragging = true;
-        dragStartX = e.clientX;
-        dragViewStart = viewStart;
-        dragViewEnd = viewEnd;
-        canvasWrapper.classList.add('dragging');
-    });
+  // ── Mouse interaction ───────────────────────────────────
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragViewStart = 0;
+  let dragViewEnd = 0;
 
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        canvasWrapper.classList.remove('dragging');
-    });
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvasWrapper.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
 
-    canvas.addEventListener('mouseleave', () => {
-        hoveredInterval = null;
-        hoveredId = -1;
-        hideTooltip();
+    if (isDragging) {
+      const dx = e.clientX - dragStartX;
+      const range = dragViewEnd - dragViewStart;
+      const pxPerMs = (canvasWrapper.clientWidth - PADDING_LEFT) / range;
+      const msShift = -dx / pxPerMs;
+      viewStart = dragViewStart + msShift;
+      viewEnd = dragViewEnd + msShift;
+      render();
+      return;
+    }
+
+    // Hit test
+    const hit = hitTest(mx, my);
+    if (hit) {
+      hoveredInterval = hit;
+      hoveredId = hit.id;
+      canvasWrapper.style.cursor = 'pointer';
+      showTooltip(hit, mx, my);
+    } else {
+      hoveredInterval = null;
+      hoveredId = -1;
+      canvasWrapper.style.cursor = 'grab';
+      hideTooltip();
+    }
+    render();
+  });
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragViewStart = viewStart;
+    dragViewEnd = viewEnd;
+    canvasWrapper.classList.add('dragging');
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    canvasWrapper.classList.remove('dragging');
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    hoveredInterval = null;
+    hoveredId = -1;
+    hideTooltip();
+    render();
+  });
+
+  // ── Keyboard shortcuts ──────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    const panStep = 3600_000; // 1 hour
+    const range = viewEnd - viewStart;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        viewStart -= panStep;
+        viewEnd -= panStep;
         render();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        viewStart += panStep;
+        viewEnd += panStep;
+        render();
+        break;
+      case '+':
+      case '=':
+        zoomBy(0.75);
+        break;
+      case '-':
+        zoomBy(1.33);
+        break;
+      case '0':
+        btnZoomReset.click();
+        break;
+    }
+  });
+
+  // ── Zoom with wheel ─────────────────────────────────────
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvasWrapper.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const range = canvasWrapper.clientWidth - PADDING_LEFT;
+    const pxPerMs = range / (viewEnd - viewStart);
+    const msAtCursor = viewStart + (mx - PADDING_LEFT) / pxPerMs;
+
+    const zoomFactor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+    const newRange = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, (viewEnd - viewStart) * zoomFactor));
+
+    viewStart = msAtCursor - (mx - PADDING_LEFT) / (range / newRange);
+    viewEnd = viewStart + newRange;
+
+    updateZoomLevel();
+    render();
+  }, { passive: false });
+
+  // ── Zoom controls ───────────────────────────────────────
+  function updateZoomLevel() {
+    const range = viewEnd - viewStart;
+    const defaultRange = 30 * 86_400_000;
+    const pct = Math.round((defaultRange / range) * 100);
+    zoomLevelEl.textContent = `${pct}%`;
+  }
+
+  btnZoomIn.addEventListener('click', () => zoomBy(0.75));
+  btnZoomOut.addEventListener('click', () => zoomBy(1.33));
+  btnZoomReset.addEventListener('click', () => {
+    viewStart = 0;
+    viewEnd = 30 * 86_400_000;
+    updateZoomLevel();
+    render();
+  });
+
+  // ── Mini-map click to navigate ────────────────────────
+  if (miniMapCanvas) {
+    miniMapCanvas.addEventListener('click', (e) => {
+      const rect = miniMapCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const mmW = rect.width;
+
+      const allStart = intervals.length
+        ? Math.min(...intervals.map((d) => d.start))
+        : 0;
+      const allEnd = intervals.length
+        ? Math.max(...intervals.map((d) => d.end))
+        : 86_400_000;
+      const allRange = allEnd - allStart;
+      const mmPxPerMs = mmW / allRange;
+
+      const clickedMs = allStart + (mx / mmW) * allRange;
+      const currentRange = viewEnd - viewStart;
+      viewStart = clickedMs - currentRange / 2;
+      viewEnd = clickedMs + currentRange / 2;
+      updateZoomLevel();
+      render();
     });
+  }
 
-    // Zoom with wheel
-    canvas.addEventListener(
-        'wheel',
-        (e) => {
-            e.preventDefault();
-            const rect = canvasWrapper.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const range = canvasWrapper.clientWidth - PADDING_LEFT;
-            const pxPerMs = range / (viewEnd - viewStart);
-            const msAtCursor = viewStart + (mx - PADDING_LEFT) / pxPerMs;
+  function zoomBy(factor) {
+    const center = (viewStart + viewEnd) / 2;
+    const range = (viewEnd - viewStart) * factor;
+    viewStart = center - range / 2;
+    viewEnd = center + range / 2;
+    if (viewEnd - viewStart > MAX_ZOOM) {
+      const diff = viewEnd - viewStart - MAX_ZOOM;
+      viewStart += diff / 2;
+      viewEnd -= diff / 2;
+    }
+    if (viewEnd - viewStart < MIN_ZOOM) {
+      const diff = MIN_ZOOM - (viewEnd - viewStart);
+      viewStart -= diff / 2;
+      viewEnd += diff / 2;
+    }
+    updateZoomLevel();
+    render();
+  }
 
-            const zoomFactor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
-            const newRange = Math.max(
-                MIN_ZOOM,
-                Math.min(MAX_ZOOM, (viewEnd - viewStart) * zoomFactor)
-            );
+  // ── Search ──────────────────────────────────────────────
+  let searchDebounce = null;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      searchTerm = searchInput.value.trim();
+      render();
+    }, 150);
+  });
 
-            viewStart = msAtCursor - (mx - PADDING_LEFT) / (range / newRange);
-            viewEnd = viewStart + newRange;
-
-            updateZoomLevel();
-            render();
-        },
-        { passive: false }
+  // ── Generate / Clear ────────────────────────────────────
+  btnGenerate.addEventListener('click', () => {
+    const count = parseInt(
+      prompt('Number of intervals (default 5000):', '5000') || '5000',
+      10
     );
+    if (!count || count < 1) return;
+    loadData(generateSampleData(Math.min(count, 50000)));
+  });
 
-    // ── Zoom controls ───────────────────────────────────────
-    function updateZoomLevel() {
-        const range = viewEnd - viewStart;
-        const defaultRange = 30 * 86_400_000;
-        const pct = Math.round((defaultRange / range) * 100);
-        zoomLevelEl.textContent = `${pct}%`;
+  btnClear.addEventListener('click', () => {
+    loadData([]);
+  });
+
+  showCatCheck.addEventListener('change', () => {
+    if (showCatCheck.checked) {
+      visibleCategories = new Set(CATEGORIES.map((c) => c.name));
+    } else {
+      visibleCategories.clear();
     }
+    renderLegend();
+    render();
+    renderMiniMap();
+  });
 
-    btnZoomIn.addEventListener('click', () => zoomBy(0.75));
-    btnZoomOut.addEventListener('click', () => zoomBy(1.33));
-    btnZoomReset.addEventListener('click', () => {
-        viewStart = 0;
-        viewEnd = 30 * 86_400_000;
-        updateZoomLevel();
-        render();
-    });
-
-    function zoomBy(factor) {
-        const center = (viewStart + viewEnd) / 2;
-        const range = (viewEnd - viewStart) * factor;
-        viewStart = center - range / 2;
-        viewEnd = center + range / 2;
-        if (viewEnd - viewStart > MAX_ZOOM) {
-            const diff = viewEnd - viewStart - MAX_ZOOM;
-            viewStart += diff / 2;
-            viewEnd -= diff / 2;
-        }
-        if (viewEnd - viewStart < MIN_ZOOM) {
-            const diff = MIN_ZOOM - (viewEnd - viewStart);
-            viewStart -= diff / 2;
-            viewEnd += diff / 2;
-        }
-        updateZoomLevel();
-        render();
+  // ── Data management ─────────────────────────────────────
+  function loadData(newIntervals) {
+    tree = new IntervalTree();
+    intervals = newIntervals.map((d) => ({ ...d }));
+    for (const d of intervals) {
+      tree.insert(d.start, d.end, d);
     }
+    viewStart = 0;
+    viewEnd = 30 * 86_400_000;
+    updateZoomLevel();
+    renderLegend();
+    render();
+    renderMiniMap();
+  }
 
-    // ── Search ──────────────────────────────────────────────
-    let searchDebounce = null;
-    searchInput.addEventListener('input', () => {
-        clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => {
-            searchTerm = searchInput.value.trim();
-            render();
-        }, 150);
-    });
+  // ── Init ────────────────────────────────────────────────
+  function init() {
+    window.addEventListener('resize', resize);
+    resize();
+    renderLegend();
 
-    // ── Generate / Clear ────────────────────────────────────
-    btnGenerate.addEventListener('click', () => {
-        const count = parseInt(
-            prompt('Number of intervals (default 5000):', '5000') || '5000',
-            10
-        );
-        if (!count || count < 1) return;
-        loadData(generateSampleData(Math.min(count, 50000)));
-    });
+    // Generate initial sample data
+    loadData(generateSampleData(3000));
+  }
 
-    btnClear.addEventListener('click', () => {
-        loadData([]);
-    });
-
-    showCatCheck.addEventListener('change', () => {
-        if (showCatCheck.checked) {
-            visibleCategories = new Set(CATEGORIES.map((c) => c.name));
-        } else {
-            visibleCategories.clear();
-        }
-        renderLegend();
-        render();
-    });
-
-    // ── Data management ─────────────────────────────────────
-    function loadData(newIntervals) {
-        tree = new IntervalTree();
-        intervals = newIntervals.map((d) => ({ ...d }));
-        for (const d of intervals) {
-            tree.insert(d.start, d.end, d);
-        }
-        viewStart = 0;
-        viewEnd = 30 * 86_400_000;
-        updateZoomLevel();
-        renderLegend();
-        render();
-    }
-
-    // ── Init ────────────────────────────────────────────────
-    function init() {
-        window.addEventListener('resize', resize);
-        resize();
-        renderLegend();
-
-        // Generate initial sample data
-        loadData(generateSampleData(3000));
-    }
-
-    return { init };
+  return { init };
 })();
 
 // ── Boot ──────────────────────────────────────────────────
