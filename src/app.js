@@ -123,6 +123,7 @@ const App = (() => {
   const canvasWrapper = document.getElementById('canvas-wrapper');
   const miniMapCanvas = document.getElementById('minimap');
   const miniMapCtx = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
+  const countInput = document.getElementById('count-input');
 
   // State
   let intervals = [];
@@ -743,11 +744,11 @@ const App = (() => {
 
   // ── Generate / Clear ────────────────────────────────────
   btnGenerate.addEventListener('click', () => {
-    const count = parseInt(
-      prompt('Number of intervals (default 5000):', '5000') || '5000',
-      10
-    );
-    if (!count || count < 1) return;
+    const count = parseInt(countInput.value, 10);
+    if (!count || count < 1) {
+      countInput.value = 5000;
+      return;
+    }
     loadData(generateSampleData(Math.min(count, 50000)));
   });
 
