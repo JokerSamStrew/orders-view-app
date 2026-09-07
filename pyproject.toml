@@ -9,6 +9,9 @@ authors = [
 requires-python = ">=3.12"
 dependencies = []
 
+[tool.uv]
+package = false
+
 [project.scripts]
 orders-view = "orders_view:main"
 
