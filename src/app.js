@@ -2,6 +2,56 @@
    Booking Timeline Viewer — Single-Page Canvas Application
    ═══════════════════════════════════════════════════════════ */
 
+// ═══════════════════════════════════════════════════════════
+// Global Constants — all "magic numbers" centralized here
+// ═══════════════════════════════════════════════════════════
+
+// Time constants (milliseconds)
+const MS_PER_SECOND  = 1_000;
+const MS_PER_MINUTE  = 60 * MS_PER_SECOND;       // 60,000 ms
+const MS_PER_HOUR    = 60 * MS_PER_MINUTE;       // 3,600,000 ms
+const MS_PER_DAY     = 24 * MS_PER_HOUR;         // 86,400,000 ms
+
+// Viewport defaults
+const DEFAULT_VIEW_DAYS   = 30;                    // 30 days default viewport span
+const DEFAULT_VIEW_MS     = DEFAULT_VIEW_DAYS * MS_PER_DAY;
+
+// Zoom bounds (milliseconds)
+const MIN_ZOOM_MS   = 4 * MS_PER_HOUR;            // 4 hours minimum zoom range
+const MAX_ZOOM_MS   = 90 * MS_PER_DAY;            // 90 days maximum zoom range
+
+// Layout constants (pixels)
+const ROW_HEIGHT          = 48;                    // Height of each booking row
+const GAP                 = 4;                     // Vertical gap between rows
+const BAR_RADIUS          = 4;                     // Border radius for booking bars
+const PADDING_LEFT        = 0;                     // Left padding for bar labels
+const PADDING_TOP         = 40;                    // Top padding (header space)
+const TICK_HEIGHT         = 30;                    // Height of time axis labels area
+const MINI_MAP_HEIGHT     = 60;                    // Height of the mini-map overview
+
+// Data generation defaults
+const DEFAULT_COUNT       = 5000;                   // Default number of sample intervals
+const MAX_COUNT           = 50_000;                 // Maximum allowed sample intervals
+const DEFAULT_DURATION    = 60;                     // Default average booking duration (minutes)
+
+// Interaction constants
+const PAN_STEP_MS         = 1 * MS_PER_HOUR;        // Keyboard pan step (1 hour)
+const ZOOM_FACTOR_IN      = 0.75;                   // Zoom-in multiplier (factor passed to zoomBy)
+const ZOOM_FACTOR_OUT     = 1.33;                   // Zoom-out multiplier (factor passed to zoomBy)
+const WHEEL_ZOOM_FACTOR   = 1.15;                   // Mouse wheel zoom factor per delta
+const AUTO_FIT_PADDING_PCT = 0.05;                  // 5% padding around auto-fit viewport
+const TOOLTIP_MARGIN_PX   = 10;                     // Minimum pixel margin for tooltip from edges
+const TOOLTIP_OFFSET_PX   = 14;                     // Horizontal offset for tooltip from cursor
+const INITIAL_SAMPLE_COUNT = 3000;                  // Number of intervals on initial load
+const LABEL_MIN_WIDTH_PX  = 50;                     // Minimum bar width to show text label
+const LABEL_NAME_MAX_LEN  = 28;                     // Max characters before truncating name
+const LABEL_NAME_TRUNCATE = 26;                     // Characters to keep when truncating
+const HOVER_LINE_WIDTH    = 1.5;                    // Stroke width for hovered bar highlight
+const DEFAULT_PADDING_MS  = 1000;                   // Default padding when no data (ms)
+
+// Search & debounce
+const SEARCH_DEBOUNCE_MS  = 150;                    // Debounce delay for search input (ms)
+
 // ── Category palette ──────────────────────────────────────
 const CATEGORIES = [
     { name: 'Confirmed', color: '#6c63ff' },
@@ -69,9 +119,8 @@ class IntervalTree {
 // ── Sample data generator ─────────────────────────────────
 function generateSampleData(count = 5000, avgDurationMin = 60) {
     const now = Date.now();
-    const dayMs = 86_400_000;
-    const range = 30 * dayMs;
-    const avgDurationMs = avgDurationMin * 60_000;
+    const range = DEFAULT_VIEW_DAYS * MS_PER_DAY;
+    const avgDurationMs = avgDurationMin * MS_PER_MINUTE;
     const names = [
         'Alice Johnson',
         'Bob Smith',
@@ -121,7 +170,7 @@ function generateSampleData(count = 5000, avgDurationMin = 60) {
             category: cat,
             start,
             end: start + duration,
-            duration: Math.round(duration / 60_000),
+            duration: Math.round(duration / MS_PER_MINUTE),
         });
     }
     return data;
@@ -158,18 +207,13 @@ const App = (() => {
 
     // Viewport (in timeline-ms coordinates)
     let viewStart = 0;
-    let viewEnd = 30 * 86_400_000;
-    const MIN_ZOOM = 4 * 3600_000; // 4h
-    const MAX_ZOOM = 90 * 86_400_000; // 90d
+    let viewEnd = DEFAULT_VIEW_MS;
+    const MIN_ZOOM = MIN_ZOOM_MS;
+    const MAX_ZOOM = MAX_ZOOM_MS;
 
-    // Layout constants (px)
-    const ROW_HEIGHT = 48;
-    const GAP = 4;
-    const BAR_RADIUS = 4;
-    const PADDING_LEFT = 0;
-    const PADDING_TOP = 40;
-    const TICK_HEIGHT = 30;
-    const MINI_MAP_HEIGHT = 60;
+    // Layout constants (px) — re-exported from module-scope constants
+    // ROW_HEIGHT, GAP, BAR_RADIUS, PADDING_LEFT, PADDING_TOP,
+    // TICK_HEIGHT, MINI_MAP_HEIGHT are all defined above
 
     // ── Resize ────────────────────────────────────────────
     function resize() {
@@ -302,12 +346,12 @@ const App = (() => {
                 ctx.fill();
 
                 // Label (if bar is wide enough)
-                if (barW > 50) {
+                if (barW > LABEL_MIN_WIDTH_PX) {
                     ctx.globalAlpha = isHovered ? 1 : 0.85;
                     ctx.fillStyle = '#fff';
                     ctx.font = '11px Inter, sans-serif';
                     const label =
-                        d.name.length > 28 ? d.name.slice(0, 26) + '…' : d.name;
+                        d.name.length > LABEL_NAME_MAX_LEN ? d.name.slice(0, LABEL_NAME_TRUNCATE) + '…' : d.name;
                     ctx.fillText(label, x1 + 6, y + 16);
 
                     ctx.fillStyle = '#ffffff99';
@@ -319,7 +363,7 @@ const App = (() => {
                 if (isHovered) {
                     ctx.globalAlpha = 1;
                     ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 1.5;
+                    ctx.lineWidth = HOVER_LINE_WIDTH;
                     roundRect(ctx, x1, y, barW, ROW_HEIGHT, BAR_RADIUS);
                     ctx.stroke();
                 }
@@ -349,31 +393,30 @@ const App = (() => {
     }
 
     function drawDayBands(vs, ve, pxPerMs, w, h) {
-        const dayMs = 86_400_000;
-        const startDay = Math.floor(vs / dayMs) * dayMs;
-        const endDay = Math.ceil(ve / dayMs) * dayMs;
+        const startDay = Math.floor(vs / MS_PER_DAY) * MS_PER_DAY;
+        const endDay = Math.ceil(ve / MS_PER_DAY) * MS_PER_DAY;
 
-        for (let d = startDay; d < endDay; d += dayMs) {
+        for (let d = startDay; d < endDay; d += MS_PER_DAY) {
             const x1 = (d - viewStart) * pxPerMs;
-            const x2 = (d + dayMs - viewStart) * pxPerMs;
+            const x2 = (d + MS_PER_DAY - viewStart) * pxPerMs;
             const clampedX1 = Math.max(x1, 0);
             const clampedX2 = Math.min(x2, w);
             if (clampedX2 > clampedX1) {
                 ctx.fillStyle =
-                    Math.floor(d / dayMs) % 2 === 0 ? '#ffffff06' : '#ffffff03';
+                    Math.floor(d / MS_PER_DAY) % 2 === 0 ? '#ffffff06' : '#ffffff03';
                 ctx.fillRect(clampedX1, 0, clampedX2 - clampedX1, h);
             }
         }
     }
 
     function drawTimeTicks(vs, ve, pxPerMs, w, h) {
-        const pxPerHour = pxPerMs * 3600_000;
+        const pxPerHour = pxPerMs * MS_PER_HOUR;
         let tickInterval;
-        if (pxPerHour > 200) tickInterval = 3600_000;
-        else if (pxPerHour > 80) tickInterval = 3600_000 * 2;
-        else if (pxPerHour > 30) tickInterval = 3600_000 * 4;
-        else if (pxPerHour > 15) tickInterval = 3600_000 * 6;
-        else tickInterval = 3600_000 * 12;
+        if (pxPerHour > 200) tickInterval = MS_PER_HOUR;
+        else if (pxPerHour > 80) tickInterval = MS_PER_HOUR * 2;
+        else if (pxPerHour > 30) tickInterval = MS_PER_HOUR * 4;
+        else if (pxPerHour > 15) tickInterval = MS_PER_HOUR * 6;
+        else tickInterval = MS_PER_HOUR * 12;
 
         const startTick = Math.floor(vs / tickInterval) * tickInterval;
         const endTick = Math.ceil(ve / tickInterval) * tickInterval;
@@ -392,13 +435,13 @@ const App = (() => {
     }
 
     function drawTimeLabels(vs, ve, pxPerMs, w, h) {
-        const pxPerHour = pxPerMs * 3600_000;
+        const pxPerHour = pxPerMs * MS_PER_HOUR;
         let tickInterval;
-        if (pxPerHour > 200) tickInterval = 3600_000;
-        else if (pxPerHour > 80) tickInterval = 3600_000 * 2;
-        else if (pxPerHour > 30) tickInterval = 3600_000 * 4;
-        else if (pxPerHour > 15) tickInterval = 3600_000 * 6;
-        else tickInterval = 3600_000 * 12;
+        if (pxPerHour > 200) tickInterval = MS_PER_HOUR;
+        else if (pxPerHour > 80) tickInterval = MS_PER_HOUR * 2;
+        else if (pxPerHour > 30) tickInterval = MS_PER_HOUR * 4;
+        else if (pxPerHour > 15) tickInterval = MS_PER_HOUR * 6;
+        else tickInterval = MS_PER_HOUR * 12;
 
         const startTick = Math.floor(vs / tickInterval) * tickInterval;
         const endTick = Math.ceil(ve / tickInterval) * tickInterval;
@@ -508,10 +551,10 @@ const App = (() => {
 
         const tw = tooltip.offsetWidth;
         const th = tooltip.offsetHeight;
-        if (tx + tw > wrapperRect.width - 10) tx = mouseX - tw - 14;
-        if (ty + th > wrapperRect.height - 10)
-            ty = wrapperRect.height - th - 10;
-        if (ty < 10) ty = 10;
+        if (tx + tw > wrapperRect.width - TOOLTIP_MARGIN_PX) tx = mouseX - tw - TOOLTIP_OFFSET_PX;
+        if (ty + th > wrapperRect.height - TOOLTIP_MARGIN_PX)
+            ty = wrapperRect.height - th - TOOLTIP_MARGIN_PX;
+        if (ty < TOOLTIP_MARGIN_PX) ty = TOOLTIP_MARGIN_PX;
 
         tooltip.style.left = tx + 'px';
         tooltip.style.top = ty + 'px';
@@ -643,7 +686,7 @@ const App = (() => {
 
     // ── Keyboard shortcuts ──────────────────────────────────
     document.addEventListener('keydown', (e) => {
-        const panStep = 3600_000; // 1 hour
+        const panStep = PAN_STEP_MS; // 1 hour
         const range = viewEnd - viewStart;
 
         switch (e.key) {
@@ -683,10 +726,10 @@ const App = (() => {
             const pxPerMs = range / (viewEnd - viewStart);
             const msAtCursor = viewStart + mx / pxPerMs;
 
-            const zoomFactor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+            const zoomFactor = e.deltaY > 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
             const newRange = Math.max(
-                MIN_ZOOM,
-                Math.min(MAX_ZOOM, (viewEnd - viewStart) * zoomFactor)
+                MIN_ZOOM_MS,
+                Math.min(MAX_ZOOM_MS, (viewEnd - viewStart) * zoomFactor)
             );
 
             viewStart = msAtCursor - mx / (range / newRange);
@@ -701,23 +744,23 @@ const App = (() => {
     // ── Zoom controls ───────────────────────────────────────
     function updateZoomLevel() {
         const range = viewEnd - viewStart;
-        const defaultRange = 30 * 86_400_000;
+        const defaultRange = DEFAULT_VIEW_MS;
         const pct = Math.round((defaultRange / range) * 100);
         zoomLevelEl.textContent = `${pct}%`;
     }
 
-    btnZoomIn.addEventListener('click', () => zoomBy(0.75));
-    btnZoomOut.addEventListener('click', () => zoomBy(1.33));
+    btnZoomIn.addEventListener('click', () => zoomBy(ZOOM_FACTOR_IN));
+    btnZoomOut.addEventListener('click', () => zoomBy(ZOOM_FACTOR_OUT));
     btnZoomReset.addEventListener('click', () => {
         if (intervals.length > 0) {
             const minStart = Math.min(...intervals.map((d) => d.start));
             const maxEnd = Math.max(...intervals.map((d) => d.end));
-            const padding = (maxEnd - minStart) * 0.05;
+            const padding = (maxEnd - minStart) * AUTO_FIT_PADDING_PCT;
             viewStart = minStart - padding;
             viewEnd = maxEnd + padding;
         } else {
             viewStart = 0;
-            viewEnd = 30 * 86_400_000;
+            viewEnd = DEFAULT_VIEW_MS;
         }
         updateZoomLevel();
         render();
@@ -735,7 +778,7 @@ const App = (() => {
                 : 0;
             const allEnd = intervals.length
                 ? Math.max(...intervals.map((d) => d.end))
-                : 86_400_000;
+                : MS_PER_DAY;
             const allRange = allEnd - allStart;
             const mmPxPerMs = mmW / allRange;
 
@@ -753,13 +796,13 @@ const App = (() => {
         const range = (viewEnd - viewStart) * factor;
         viewStart = center - range / 2;
         viewEnd = center + range / 2;
-        if (viewEnd - viewStart > MAX_ZOOM) {
-            const diff = viewEnd - viewStart - MAX_ZOOM;
+        if (viewEnd - viewStart > MAX_ZOOM_MS) {
+            const diff = viewEnd - viewStart - MAX_ZOOM_MS;
             viewStart += diff / 2;
             viewEnd -= diff / 2;
         }
-        if (viewEnd - viewStart < MIN_ZOOM) {
-            const diff = MIN_ZOOM - (viewEnd - viewStart);
+        if (viewEnd - viewStart < MIN_ZOOM_MS) {
+            const diff = MIN_ZOOM_MS - (viewEnd - viewStart);
             viewStart -= diff / 2;
             viewEnd += diff / 2;
         }
@@ -774,19 +817,19 @@ const App = (() => {
         searchDebounce = setTimeout(() => {
             searchTerm = searchInput.value.trim();
             render();
-        }, 150);
+        }, SEARCH_DEBOUNCE_MS);
     });
 
     // ── Generate / Clear ────────────────────────────────────
     btnGenerate.addEventListener('click', () => {
         const count = parseInt(countInput.value, 10);
         if (!count || count < 1) {
-            countInput.value = 5000;
+            countInput.value = DEFAULT_COUNT;
             return;
         }
         const avgDuration = parseInt(durationInput.value, 10);
-        const validDuration = avgDuration > 0 ? avgDuration : 60;
-        loadData(generateSampleData(Math.min(count, 50000), validDuration));
+        const validDuration = avgDuration > 0 ? avgDuration : DEFAULT_DURATION;
+        loadData(generateSampleData(Math.min(count, MAX_COUNT), validDuration));
     });
 
     btnClear.addEventListener('click', () => {
@@ -805,12 +848,12 @@ const App = (() => {
         if (intervals.length > 0) {
             const minStart = Math.min(...intervals.map((d) => d.start));
             const maxEnd = Math.max(...intervals.map((d) => d.end));
-            const padding = (maxEnd - minStart) * 0.05; // 5% padding
+            const padding = (maxEnd - minStart) * AUTO_FIT_PADDING_PCT;
             viewStart = minStart - padding;
             viewEnd = maxEnd + padding;
         } else {
             viewStart = 0;
-            viewEnd = 30 * 86_400_000;
+            viewEnd = DEFAULT_VIEW_MS;
         }
 
         updateZoomLevel();
@@ -826,8 +869,8 @@ const App = (() => {
         initLegend();
 
         // Generate initial sample data
-        const initialDuration = parseInt(durationInput.value, 10) || 60;
-        loadData(generateSampleData(3000, initialDuration));
+        const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
+        loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration));
     }
 
     return { init };
