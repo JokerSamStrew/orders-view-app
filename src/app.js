@@ -435,13 +435,33 @@ const App = (() => {
     }
 
     function drawTimeLabels(vs, ve, pxPerMs, w, h) {
-        const pxPerHour = pxPerMs * MS_PER_HOUR;
+        const pxPerDay = pxPerMs * MS_PER_DAY;
+        const viewSpanDays = (ve - vs) / MS_PER_DAY;
+
         let tickInterval;
-        if (pxPerHour > 200) tickInterval = MS_PER_HOUR;
-        else if (pxPerHour > 80) tickInterval = MS_PER_HOUR * 2;
-        else if (pxPerHour > 30) tickInterval = MS_PER_HOUR * 4;
-        else if (pxPerHour > 15) tickInterval = MS_PER_HOUR * 6;
-        else tickInterval = MS_PER_HOUR * 12;
+        let labelFormat;  // 'time' | 'datetime' | 'date' | 'month' | 'year'
+
+        if (viewSpanDays < 1) {
+            // Zoomed in: less than 1 day visible
+            tickInterval = MS_PER_HOUR;
+            labelFormat = 'time';
+        } else if (viewSpanDays < 7) {
+            // 1–7 days: show date + time
+            tickInterval = MS_PER_HOUR * 4;
+            labelFormat = 'datetime';
+        } else if (viewSpanDays < 60) {
+            // 7–60 days: show date only (month + day)
+            tickInterval = MS_PER_DAY * 2;
+            labelFormat = 'date';
+        } else if (viewSpanDays < 365) {
+            // 60–365 days: show month + year
+            tickInterval = MS_PER_DAY * 30;
+            labelFormat = 'month';
+        } else {
+            // > 365 days: show year only
+            tickInterval = MS_PER_DAY * 365;
+            labelFormat = 'year';
+        }
 
         const startTick = Math.floor(vs / tickInterval) * tickInterval;
         const endTick = Math.ceil(ve / tickInterval) * tickInterval;
@@ -455,10 +475,30 @@ const App = (() => {
             if (x < 0 || x > w) continue;
 
             const date = new Date(t);
-            const label = date.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
+            let label;
+            switch (labelFormat) {
+                case 'time':
+                    label = date.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    });
+                    break;
+                case 'datetime':
+                    label =
+                        date.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+                        ' ' +
+                        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    break;
+                case 'date':
+                    label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    break;
+                case 'month':
+                    label = date.toLocaleDateString([], { month: 'short', year: 'numeric' });
+                    break;
+                case 'year':
+                    label = String(date.getFullYear());
+                    break;
+            }
             ctx.fillText(label, x + 3, axisY + 14);
 
             ctx.strokeStyle = '#ffffff33';
