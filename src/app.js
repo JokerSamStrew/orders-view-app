@@ -682,8 +682,16 @@ const App = (() => {
   btnZoomIn.addEventListener('click', () => zoomBy(0.75));
   btnZoomOut.addEventListener('click', () => zoomBy(1.33));
   btnZoomReset.addEventListener('click', () => {
-    viewStart = 0;
-    viewEnd = 30 * 86_400_000;
+    if (intervals.length > 0) {
+      const minStart = Math.min(...intervals.map((d) => d.start));
+      const maxEnd = Math.max(...intervals.map((d) => d.end));
+      const padding = (maxEnd - minStart) * 0.05;
+      viewStart = minStart - padding;
+      viewEnd = maxEnd + padding;
+    } else {
+      viewStart = 0;
+      viewEnd = 30 * 86_400_000;
+    }
     updateZoomLevel();
     render();
   });
@@ -774,8 +782,19 @@ const App = (() => {
     for (const d of intervals) {
       tree.insert(d.start, d.end, d);
     }
-    viewStart = 0;
-    viewEnd = 30 * 86_400_000;
+
+    // Auto-fit viewport to actual data range
+    if (intervals.length > 0) {
+      const minStart = Math.min(...intervals.map((d) => d.start));
+      const maxEnd = Math.max(...intervals.map((d) => d.end));
+      const padding = (maxEnd - minStart) * 0.05; // 5% padding
+      viewStart = minStart - padding;
+      viewEnd = maxEnd + padding;
+    } else {
+      viewStart = 0;
+      viewEnd = 30 * 86_400_000;
+    }
+
     updateZoomLevel();
     renderLegend();
     render();
