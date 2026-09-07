@@ -9,5 +9,9 @@ nohup uv run python -m http.server 8080 > /tmp/booking-server.log 2>&1 & echo "S
 ## Stop the web server
 pkill -9 -f "http.server 8080" && echo "Server forcefully stopped" || echo "No server running"
 
+## Run tests
+pnpx vitest run
+
 ## Rules
 - Do not add dependencies unless necessary.
+- Run tests js or html change
