@@ -11,7 +11,7 @@ A single-page canvas-based application for visualizing and exploring booking tim
 - **Mini-map** — overview bar at the bottom; click to navigate to any time range
 - **Zoom & pan** — mouse wheel zoom (4h–90d), click-drag to pan, keyboard shortcuts
 - **Search** — filter by name, customer, or category (debounced)
-- **Category legend** — click to toggle categories on/off; "Show All" restores everything
+- **Category legend** — click to toggle categories on/off
 - **Auto-fit** — Generate and Reset buttons auto-scale the viewport to the data range
 
 ## Tech

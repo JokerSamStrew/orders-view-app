@@ -121,7 +121,6 @@ const App = (() => {
   const btnZoomOut = document.getElementById('zoom-out');
   const btnZoomReset = document.getElementById('zoom-reset');
   const zoomLevelEl = document.getElementById('zoom-level');
-  const btnShowAll = document.getElementById('btn-show-all');
   const canvasWrapper = document.getElementById('canvas-wrapper');
   const miniMapCanvas = document.getElementById('minimap');
   const miniMapCtx = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
@@ -776,13 +775,6 @@ const App = (() => {
 
   btnClear.addEventListener('click', () => {
     loadData([]);
-  });
-
-  btnShowAll.addEventListener('click', () => {
-    visibleCategories = new Set(CATEGORIES.map((c) => c.name));
-    renderLegend();
-    render();
-    renderMiniMap();
   });
 
   // ── Data management ─────────────────────────────────────
