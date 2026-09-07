@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Timeline Viewer</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Toolbar -->
+    <header id="toolbar">
+      <div class="toolbar-left">
+        <h1>📅 Booking Timeline</h1>
+        <span id="stats"></span>
+      </div>
+      <div class="toolbar-center">
+        <input type="text" id="search" placeholder="Search by name, customer, or status…" />
+      </div>
+      <div class="toolbar-right">
+        <button id="btn-generate" title="Generate sample data">Generate Data</button>
+        <button id="btn-clear" title="Clear all data">Clear</button>
+        <label class="toggle">
+          <input type="checkbox" id="show-categories" checked />
+          <span>Show Categories</span>
+        </label>
+      </div>
+    </header>
+
+    <!-- Legend -->
+    <div id="legend" class="hidden"></div>
+
+    <!-- Canvas container -->
+    <div id="canvas-wrapper">
+      <canvas id="canvas"></canvas>
+      <!-- Tooltip (positioned absolutely over canvas) -->
+      <div id="tooltip" class="hidden"></div>
+    </div>
+
+    <!-- Zoom controls -->
+    <div id="zoom-controls">
+      <button id="zoom-in" title="Zoom in">+</button>
+      <button id="zoom-reset" title="Reset view">⟲</button>
+      <button id="zoom-out" title="Zoom out">−</button>
+      <span id="zoom-level">100%</span>
+    </div>
+  </div>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
