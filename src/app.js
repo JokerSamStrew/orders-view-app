@@ -1271,7 +1271,7 @@ const App = (() => {
         resize();
 
         // Generate initial sample data (which calls initLegend internally)
-        // const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
+        const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
         loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
     }
 
