@@ -11,8 +11,9 @@ A single-page canvas-based application for visualizing and exploring booking tim
 - **Mini-map** — overview bar at the bottom; click to navigate to any time range
 - **Zoom & pan** — mouse wheel zoom (4h–90d), click-drag to pan, keyboard shortcuts
 - **Search** — filter by name, customer, or category (debounced)
-- **Category legend** — click to toggle categories on/off
-- **Auto-fit** — Generate and Reset buttons auto-scale the viewport to the data range
+- **Dynamic category legend** — categories and their colors are derived from your data; click a legend item to toggle that category on/off
+- **JSON import / export** — load arbitrary JSON files, save your current view
+- **Auto-fit** — Generate, Load Example, and Reset buttons auto-scale the viewport to the data range
 
 ## Tech
 
@@ -44,6 +45,27 @@ Open http://localhost:8080.
 | **Mini-map click** | Jump to time range |
 | **Legend click** | Toggle category visibility |
 
+## Data formats
+
+### Import JSON
+
+Click **Import** to load a `.json` file. Each interval must have at least `start` and `end`. Supported value types:
+
+- `start` / `end` — ISO 8601 strings (`"2025-09-01T09:00:00Z"`), millisecond epoch numbers, or Date objects
+- `duration` — optional (minutes); auto-computed from `end − start` if omitted
+- `category` — optional (string); if present, a deterministic color is assigned. If omitted, bars render grey.
+- `name`, `customer`, `id`, `metadata` — optional free-form fields preserved through import/export
+
+Top-level JSON can be an array `[ {...}, ... ]` or an object with an `intervals` key `{ "intervals": [...] }`.
+
+### Export JSON
+
+Click **Export** to download the current data as `bookings.json` (ISO timestamps, all fields preserved).
+
+### Load Example
+
+Click **Load Example** to load `data/example.json` — 20 sample bookings across all 8 default categories.
+
 ## Data generation
 
 Click **Generate Data** (or regenerate) with configurable:
@@ -51,4 +73,4 @@ Click **Generate Data** (or regenerate) with configurable:
 - **Count** — number of intervals (1–50,000)
 - **Avg Duration** — average booking length in minutes (1–1440); actual duration varies 0.5×–2.0× around the average
 
-8 color-coded categories: Confirmed, Pending, Cancelled, Checked-in, No-show, Rescheduled, VIP, Group.
+Generated data uses 8 categories: Confirmed, Pending, Cancelled, Checked-in, No-show, Rescheduled, VIP, Group.
