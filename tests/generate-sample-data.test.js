@@ -8,19 +8,6 @@
 
 import { describe, it, expect } from 'vitest';
 
-// ─── generateSampleData (extracted from src/app.js) ──────────
-
-const CATEGORIES = [
-  { name: 'Confirmed', color: '#6c63ff' },
-  { name: 'Pending', color: '#f59e42' },
-  { name: 'Cancelled', color: '#ef4444' },
-  { name: 'Checked-in', color: '#00c9a7' },
-  { name: 'No-show', color: '#8b5cf6' },
-  { name: 'Rescheduled', color: '#06b6d4' },
-  { name: 'VIP', color: '#f472b6' },
-  { name: 'Group', color: '#a3e635' },
-];
-
 const VALID_NAMES = [
   'Alice Johnson',
   'Bob Smith',
@@ -40,8 +27,6 @@ const VALID_NAMES = [
   'Paul Harris',
 ];
 
-const VALID_CATEGORIES = CATEGORIES.map((c) => c.name);
-
 const VALID_SERVICES = [
   'Haircut',
   'Massage',
@@ -55,6 +40,17 @@ const VALID_SERVICES = [
   'Photography',
   'Cooking Class',
   'Guitar Lesson',
+];
+
+const VALID_CATEGORIES = [
+  'Confirmed',
+  'Pending',
+  'Cancelled',
+  'Checked-in',
+  'No-show',
+  'Rescheduled',
+  'VIP',
+  'Group',
 ];
 
 function generateSampleData(count = 5000, avgDurationMin = 60) {
@@ -111,7 +107,7 @@ describe('generateSampleData', () => {
     }
   });
 
-  it('each item has valid category values from CATEGORIES', () => {
+  it('each item has a valid category value', () => {
     const data = generateSampleData(50);
     for (const item of data) {
       expect(VALID_CATEGORIES).toContain(item.category);

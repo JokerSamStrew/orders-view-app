@@ -52,17 +52,40 @@ const DEFAULT_PADDING_MS  = 1000;                   // Default padding when no d
 // Search & debounce
 const SEARCH_DEBOUNCE_MS  = 150;                    // Debounce delay for search input (ms)
 
-// ── Category palette ──────────────────────────────────────
-const CATEGORIES = [
-    { name: 'Confirmed', color: '#6c63ff' },
-    { name: 'Pending', color: '#f59e42' },
-    { name: 'Cancelled', color: '#ef4444' },
-    { name: 'Checked-in', color: '#00c9a7' },
-    { name: 'No-show', color: '#8b5cf6' },
-    { name: 'Rescheduled', color: '#06b6d4' },
-    { name: 'VIP', color: '#f472b6' },
-    { name: 'Group', color: '#a3e635' },
+// ── Deterministic color palette for arbitrary categories ──
+// 12 visually distinct HSL colors, assigned by index into a sorted unique-category list.
+const CATEGORY_COLORS = [
+    '#6c63ff',  // purple
+    '#f59e42',  // amber
+    '#ef4444',  // red
+    '#00c9a7',  // teal
+    '#8b5cf6',  // violet
+    '#06b6d4',  // cyan
+    '#f472b6',  // pink
+    '#a3e635',  // lime
+    '#fb923c',  // orange
+    '#34d399',  // emerald
+    '#a78bfa',  // lavender
+    '#f87171',  // coral
 ];
+
+// ── Category → color mapping (built from actual data) ──────
+let categoryColorMap = new Map();  // categoryName → color string
+
+function getOrCreateColor(categoryName) {
+    if (categoryColorMap.has(categoryName)) return categoryColorMap.get(categoryName);
+    const colors = CATEGORY_COLORS;
+    const assignedColor = colors[categoryColorMap.size % colors.length];
+    categoryColorMap.set(categoryName, assignedColor);
+    return assignedColor;
+}
+
+function rebuildCategoryColors(intervals) {
+    categoryColorMap.clear();
+    for (const d of intervals) {
+        if (d.category) getOrCreateColor(d.category);
+    }
+}
 
 // ── Interval Tree (O(log n) hover lookup) ─────────────────
 class IntervalNode {
@@ -139,7 +162,6 @@ function generateSampleData(count = 5000, avgDurationMin = 60) {
         'Olivia Jackson',
         'Paul Harris',
     ];
-    const categories = CATEGORIES.map((c) => c.name);
     const services = [
         'Haircut',
         'Massage',
@@ -153,6 +175,11 @@ function generateSampleData(count = 5000, avgDurationMin = 60) {
         'Photography',
         'Cooking Class',
         'Guitar Lesson',
+    ];
+
+    const categories = [
+        'Confirmed', 'Pending', 'Cancelled', 'Checked-in',
+        'No-show', 'Rescheduled', 'VIP', 'Group',
     ];
 
     const data = [];
@@ -203,7 +230,7 @@ const App = (() => {
     // State
     let intervals = [];
     let tree = new IntervalTree();
-    let visibleCategories = new Set(CATEGORIES.map((c) => c.name));
+    let visibleCategories = new Set();  // built from actual data
     let searchTerm = '';
     let hoveredInterval = null;
     let hoveredId = -1;
@@ -340,8 +367,7 @@ const App = (() => {
 
                 if (x2 < 0 || x1 > w) continue;
 
-                const catObj = CATEGORIES.find((c) => c.name === d.category);
-                const color = catObj ? catObj.color : '#888';
+                const color = categoryColorMap.get(d.category) || '#888';
                 const isHovered = d.id === hoveredId;
 
                 // Bar fill
@@ -547,8 +573,7 @@ const App = (() => {
 
         // Draw all intervals as tiny bars
         for (const d of intervals) {
-            const catObj = CATEGORIES.find((c) => c.name === d.category);
-            const color = catObj ? catObj.color : '#888';
+            const color = categoryColorMap.get(d.category) || '#888';
 
             const x1 = (d.start - allStart) * mmPxPerMs;
             const x2 = (d.end - allStart) * mmPxPerMs;
@@ -575,8 +600,7 @@ const App = (() => {
 
     // ── Tooltip ─────────────────────────────────────────────
     function showTooltip(d, mouseX, mouseY) {
-        const catObj = CATEGORIES.find((c) => c.name === d.category);
-        const color = catObj ? catObj.color : '#888';
+        const color = categoryColorMap.get(d.category) || '#888';
 
         const startStr = new Date(d.start).toLocaleString();
         const endStr = new Date(d.end).toLocaleString();
@@ -640,27 +664,32 @@ const App = (() => {
         return best;
     }
 
-    // ── Legend (created once, toggled via class) ────────────
+    // ── Legend (dynamic — rebuilt from actual data) ─────────
     const legendItems = [];
 
     function initLegend() {
         legendEl.innerHTML = '';
-        for (const cat of CATEGORIES) {
+        legendItems.length = 0;
+
+        // Get sorted unique category names from current data
+        const categories = [...visibleCategories].sort();
+        for (const catName of categories) {
+            const color = categoryColorMap.get(catName) || '#888';
             const item = document.createElement('div');
             item.className = 'legend-item';
-            item.innerHTML = `<span class="legend-swatch" style="background:${cat.color}"></span>${cat.name}`;
+            item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${catName}`;
             item.addEventListener('click', () => {
-                if (visibleCategories.has(cat.name)) {
-                    visibleCategories.delete(cat.name);
+                if (visibleCategories.has(catName)) {
+                    visibleCategories.delete(catName);
                 } else {
-                    visibleCategories.add(cat.name);
+                    visibleCategories.add(catName);
                 }
                 renderLegend();
                 render();
                 renderMiniMap();
             });
             legendEl.appendChild(item);
-            legendItems.push({ el: item, name: cat.name });
+            legendItems.push({ el: item, name: catName });
         }
     }
 
@@ -915,8 +944,7 @@ const App = (() => {
             id: raw.id != null ? raw.id : index,
             name: raw.name || '',
             customer: raw.customer || '',
-            category: CATEGORIES.some(c => c.name === raw.category)
-                ? raw.category : (raw.category || 'Confirmed'),
+            category: raw.category || '',  // empty string = no category (grey bar)
             start,
             end,
             duration,
@@ -1035,6 +1063,15 @@ const App = (() => {
             tree.insert(d.start, d.end, d);
         }
 
+        // Rebuild category → color map from actual data
+        rebuildCategoryColors(intervals);
+
+        // Rebuild visibleCategories set from current data
+        visibleCategories.clear();
+        for (const d of intervals) {
+            if (d.category) visibleCategories.add(d.category);
+        }
+
         // Auto-fit viewport to actual data range
         if (intervals.length > 0) {
             const minStart = Math.min(...intervals.map((d) => d.start));
@@ -1048,7 +1085,7 @@ const App = (() => {
         }
 
         updateZoomLevel();
-        renderLegend();
+        initLegend();  // rebuild legend from current data
         render();
         renderMiniMap();
     }
@@ -1057,9 +1094,8 @@ const App = (() => {
     function init() {
         window.addEventListener('resize', resize);
         resize();
-        initLegend();
 
-        // Generate initial sample data
+        // Generate initial sample data (which calls initLegend internally)
         const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
         loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
     }
