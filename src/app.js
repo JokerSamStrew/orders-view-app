@@ -224,6 +224,13 @@ const App = (() => {
     const canvasWrapper = document.getElementById('canvas-wrapper');
     const miniMapCanvas = document.getElementById('minimap');
     const miniMapCtx = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
+
+    // Popup DOM refs
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popupEl = document.getElementById('popup');
+    const popupCloseBtn = document.getElementById('popup-close');
+    const popupContent = document.getElementById('popup-content');
+    let popupInterval = null;
     const countInput = document.getElementById('count-input');
     const durationInput = document.getElementById('duration-input');
 
@@ -633,6 +640,89 @@ const App = (() => {
         tooltip.classList.add('hidden');
     }
 
+    // ── Popup (modal) ───────────────────────────────────────
+    function showPopup(d) {
+        const color = getOrCreateColor(d.category);
+
+        const startStr = new Date(d.start).toLocaleString();
+        const endStr = new Date(d.end).toLocaleString();
+
+        // Always update content first (even if popup is already visible)
+        popupContent.innerHTML = `
+      <div class="popup-title">${escapeHtml(d.name)}</div>
+      <div class="popup-row">
+        <span class="popup-label">Category</span>
+        <span class="popup-value"><span class="popup-cat" style="background:${color}"></span>${d.category}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Customer</span>
+        <span class="popup-value">${escapeHtml(d.customer)}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Start</span>
+        <span class="popup-value">${startStr}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">End</span>
+        <span class="popup-value">${endStr}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Duration</span>
+        <span class="popup-value">${d.duration} min</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">ID</span>
+        <span class="popup-value">${d.id}</span>
+      </div>
+    `;
+
+        popupInterval = d;
+
+        const wasVisible = popupOverlay.classList.contains('visible');
+
+        if (wasVisible) {
+            // Popup is already open — just update content (no animation)
+            return;
+        }
+
+        popupOverlay.classList.remove('hidden');
+        // Force reflow for transition
+        void popupOverlay.offsetWidth;
+        popupOverlay.classList.add('visible');
+    }
+
+    function hidePopup() {
+        popupOverlay.classList.remove('visible');
+        popupOverlay.classList.add('hidden');
+        popupInterval = null;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Close popup on close button click
+    popupCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hidePopup();
+    });
+
+    // Close popup when clicking on the overlay background (not the popup itself)
+    popupOverlay.addEventListener('click', (e) => {
+        if (e.target === popupOverlay) {
+            hidePopup();
+        }
+    });
+
+    // Close popup on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && popupInterval) {
+            hidePopup();
+        }
+    });
+
     // ── Hit testing (optimized with y-clustering) ───────────
     function hitTest(mouseX, mouseY) {
         const w = canvasWrapper.clientWidth;
@@ -720,8 +810,22 @@ const App = (() => {
     // ── Mouse interaction ───────────────────────────────────
     let isDragging = false;
     let dragStartX = 0;
+    let dragStartY = 0;
     let dragViewStart = 0;
     let dragViewEnd = 0;
+    let wasDrag = false;
+    const DRAG_THRESHOLD = 4; // pixels before we consider it a drag
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        isDragging = true;
+        wasDrag = false;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragViewStart = viewStart;
+        dragViewEnd = viewEnd;
+        canvasWrapper.classList.add('dragging');
+    });
 
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvasWrapper.getBoundingClientRect();
@@ -730,6 +834,10 @@ const App = (() => {
 
         if (isDragging) {
             const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+                wasDrag = true;
+            }
             const range = dragViewEnd - dragViewStart;
             const pxPerMs = canvasWrapper.clientWidth / range;
             const msShift = -dx / pxPerMs;
@@ -766,6 +874,7 @@ const App = (() => {
 
     window.addEventListener('mouseup', () => {
         isDragging = false;
+        wasDrag = false;
         canvasWrapper.classList.remove('dragging');
     });
 
@@ -774,6 +883,21 @@ const App = (() => {
         hoveredId = -1;
         hideTooltip();
         render();
+    });
+
+    // ── Canvas click → open popup ───────────────────────────
+    canvas.addEventListener('click', (e) => {
+        // Don't open popup if we were dragging
+        if (wasDrag) return;
+
+        const rect = canvasWrapper.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        const hit = hitTest(mx, my);
+        if (hit) {
+            showPopup(hit);
+        }
     });
 
     // ── Keyboard shortcuts ──────────────────────────────────
