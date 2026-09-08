@@ -640,6 +640,38 @@ const App = (() => {
         tooltip.classList.add('hidden');
     }
 
+    // ── Metadata rendering ──────────────────────────────────
+    function renderMetadata(metadata) {
+        if (!metadata || typeof metadata !== 'object') return '';
+        const entries = Object.entries(metadata);
+        if (entries.length === 0) return '';
+        const rows = entries
+            .map(([key, value]) => {
+                const escapedKey = escapeHtml(key);
+                if (typeof value === 'object' && value !== null) {
+                    // Nested object or array — render as sub-items
+                    const subItems = typeof value === 'array'
+                        ? value.map((v) => escapeHtml(String(v))).join(', ')
+                        : Object.entries(value)
+                            .map(([sk, sv]) => `${escapeHtml(String(sk))}: ${escapeHtml(typeof sv === 'object' ? JSON.stringify(sv) : String(sv))}`)
+                            .join(', ');
+                    return `<div class="popup-row">
+      <span class="popup-label">${escapedKey}</span>
+      <span class="popup-value popup-sub">${subItems}</span>
+    </div>`;
+                }
+                return `<div class="popup-row">
+      <span class="popup-label">${escapedKey}</span>
+      <span class="popup-value">${escapeHtml(String(value))}</span>
+    </div>`;
+            })
+            .join('');
+        return `<div class="popup-section">
+      <span class="popup-section-label">Metadata</span>
+      ${rows}
+    </div>`;
+    }
+
     // ── Popup (modal) ───────────────────────────────────────
     function showPopup(d) {
         const color = getOrCreateColor(d.category);
@@ -674,6 +706,7 @@ const App = (() => {
         <span class="popup-label">ID</span>
         <span class="popup-value">${d.id}</span>
       </div>
+      ${d.metadata ? renderMetadata(d.metadata) : ''}
     `;
 
         popupInterval = d;
@@ -1239,7 +1272,7 @@ const App = (() => {
 
         // Generate initial sample data (which calls initLegend internally)
         // const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
-        // loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
+        loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
     }
 
     return { init };
