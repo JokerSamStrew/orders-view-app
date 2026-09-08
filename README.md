@@ -13,6 +13,7 @@ A single-page canvas-based application for visualizing and exploring booking tim
 - **Search** — filter by name, customer, or category (debounced)
 - **Dynamic category legend** — categories and their colors are derived from your data; click a legend item to toggle that category on/off
 - **JSON import / export** — load arbitrary JSON files, save your current view
+- **Interval detail popup** — click any bar to open a detailed modal with all fields (including `metadata`)
 - **Auto-fit** — Generate, Load Example, and Reset buttons auto-scale the viewport to the data range
 
 ## Tech
@@ -38,10 +39,12 @@ Open http://localhost:8080.
 |---|---|
 | **Scroll wheel** | Zoom in/out (anchored to cursor) |
 | **Click + drag** | Pan horizontally |
+| **Click bar** | Open detail popup (modal) |
 | **← → keys** | Pan 1 hour at a time |
 | **+ / − keys** | Zoom in/out |
 | **0 key** | Reset view |
-| **Hover bar** | Show detail tooltip |
+| **Esc** | Close popup |
+| **Hover bar** | Show tooltip |
 | **Mini-map click** | Jump to time range |
 | **Legend click** | Toggle category visibility |
 
@@ -66,11 +69,22 @@ Click **Export** to download the current data as `bookings.json` (ISO timestamps
 
 Click **Load Example** to load `data/example.json` — 20 sample bookings across all 8 default categories.
 
-## Data generation
+### Data generation
 
-Click **Generate Data** (or regenerate) with configurable:
+Click **Generate Data** with configurable:
 
-- **Count** — number of intervals (1–50,000)
-- **Avg Duration** — average booking length in minutes (1–1440); actual duration varies 0.5×–2.0× around the average
+- **Count** — number of intervals (1–50,000; default: 100)
+- **Avg Duration** — average booking length in minutes (1–1440; default: 500); actual duration varies 0.5×–2.0× around the average
 
 Generated data uses 8 categories: Confirmed, Pending, Cancelled, Checked-in, No-show, Rescheduled, VIP, Group.
+
+## Source tracking
+
+The stats bar shows a source tag indicating how data was loaded:
+
+- `[generated]` — from "Generate Data"
+- `[filename.json]` — from "Import"
+- `[example.json]` — from "Load Example"
+- `[cleared]` — after "Clear"
+
+No tag means data was loaded on initial page load (empty by default).
