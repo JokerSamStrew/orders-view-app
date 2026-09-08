@@ -7,50 +7,50 @@
 // ═══════════════════════════════════════════════════════════
 
 // Time constants (milliseconds)
-const MS_PER_SECOND  = 1_000;
-const MS_PER_MINUTE  = 60 * MS_PER_SECOND;       // 60,000 ms
-const MS_PER_HOUR    = 60 * MS_PER_MINUTE;       // 3,600,000 ms
-const MS_PER_DAY     = 24 * MS_PER_HOUR;         // 86,400,000 ms
+const MS_PER_SECOND = 1_000;
+const MS_PER_MINUTE = 60 * MS_PER_SECOND;       // 60,000 ms
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;       // 3,600,000 ms
+const MS_PER_DAY = 24 * MS_PER_HOUR;         // 86,400,000 ms
 
 // Viewport defaults
-const DEFAULT_VIEW_DAYS   = 30;                    // 30 days default viewport span
-const DEFAULT_VIEW_MS     = DEFAULT_VIEW_DAYS * MS_PER_DAY;
+const DEFAULT_VIEW_DAYS = 30;                    // 30 days default viewport span
+const DEFAULT_VIEW_MS = DEFAULT_VIEW_DAYS * MS_PER_DAY;
 
 // Zoom bounds (milliseconds)
-const MIN_ZOOM_MS   = 4 * MS_PER_HOUR;            // 4 hours minimum zoom range
-const MAX_ZOOM_MS   = 90 * MS_PER_DAY;            // 90 days maximum zoom range
+const MIN_ZOOM_MS = 4 * MS_PER_HOUR;            // 4 hours minimum zoom range
+const MAX_ZOOM_MS = 90 * MS_PER_DAY;            // 90 days maximum zoom range
 
 // Layout constants (pixels)
-const ROW_HEIGHT          = 48;                    // Height of each booking row
-const GAP                 = 4;                     // Vertical gap between rows
-const BAR_RADIUS          = 4;                     // Border radius for booking bars
-const PADDING_LEFT        = 0;                     // Left padding for bar labels
-const PADDING_TOP         = 40;                    // Top padding (header space)
-const TICK_HEIGHT         = 30;                    // Height of time axis labels area
-const MINI_MAP_HEIGHT     = 60;                    // Height of the mini-map overview
+const ROW_HEIGHT = 48;                    // Height of each booking row
+const GAP = 4;                     // Vertical gap between rows
+const BAR_RADIUS = 4;                     // Border radius for booking bars
+const PADDING_LEFT = 0;                     // Left padding for bar labels
+const PADDING_TOP = 40;                    // Top padding (header space)
+const TICK_HEIGHT = 30;                    // Height of time axis labels area
+const MINI_MAP_HEIGHT = 30;                    // Height of the mini-map overview
 
 // Data generation defaults
-const DEFAULT_COUNT       = 5000;                   // Default number of sample intervals
-const MAX_COUNT           = 50_000;                 // Maximum allowed sample intervals
-const DEFAULT_DURATION    = 60;                     // Default average booking duration (minutes)
+const DEFAULT_COUNT = 100;                   // Default number of sample intervals
+const MAX_COUNT = 50_000;                 // Maximum allowed sample intervals
+const DEFAULT_DURATION = 500;                     // Default average booking duration (minutes)
 
 // Interaction constants
-const PAN_STEP_MS         = 1 * MS_PER_HOUR;        // Keyboard pan step (1 hour)
-const ZOOM_FACTOR_IN      = 0.75;                   // Zoom-in multiplier (factor passed to zoomBy)
-const ZOOM_FACTOR_OUT     = 1.33;                   // Zoom-out multiplier (factor passed to zoomBy)
-const WHEEL_ZOOM_FACTOR   = 1.15;                   // Mouse wheel zoom factor per delta
+const PAN_STEP_MS = 1 * MS_PER_HOUR;        // Keyboard pan step (1 hour)
+const ZOOM_FACTOR_IN = 0.75;                   // Zoom-in multiplier (factor passed to zoomBy)
+const ZOOM_FACTOR_OUT = 1.33;                   // Zoom-out multiplier (factor passed to zoomBy)
+const WHEEL_ZOOM_FACTOR = 1.15;                   // Mouse wheel zoom factor per delta
 const AUTO_FIT_PADDING_PCT = 0.05;                  // 5% padding around auto-fit viewport
-const TOOLTIP_MARGIN_PX   = 10;                     // Minimum pixel margin for tooltip from edges
-const TOOLTIP_OFFSET_PX   = 14;                     // Horizontal offset for tooltip from cursor
-const INITIAL_SAMPLE_COUNT = 3000;                  // Number of intervals on initial load
-const LABEL_MIN_WIDTH_PX  = 50;                     // Minimum bar width to show text label
-const LABEL_NAME_MAX_LEN  = 28;                     // Max characters before truncating name
+const TOOLTIP_MARGIN_PX = 10;                     // Minimum pixel margin for tooltip from edges
+const TOOLTIP_OFFSET_PX = 14;                     // Horizontal offset for tooltip from cursor
+const INITIAL_SAMPLE_COUNT = 30;                  // Number of intervals on initial load
+const LABEL_MIN_WIDTH_PX = 50;                     // Minimum bar width to show text label
+const LABEL_NAME_MAX_LEN = 28;                     // Max characters before truncating name
 const LABEL_NAME_TRUNCATE = 26;                     // Characters to keep when truncating
-const HOVER_LINE_WIDTH    = 1.5;                    // Stroke width for hovered bar highlight
-const DEFAULT_PADDING_MS  = 1000;                   // Default padding when no data (ms)
+const HOVER_LINE_WIDTH = 1.5;                    // Stroke width for hovered bar highlight
+const DEFAULT_PADDING_MS = 1000;                   // Default padding when no data (ms)
 
 // Search & debounce
-const SEARCH_DEBOUNCE_MS  = 150;                    // Debounce delay for search input (ms)
+const SEARCH_DEBOUNCE_MS = 150;                    // Debounce delay for search input (ms)
 
 // ── Deterministic color palette for arbitrary categories ──
 // 12 visually distinct HSL colors, assigned by index into a sorted unique-category list.
@@ -1114,8 +1114,8 @@ const App = (() => {
         resize();
 
         // Generate initial sample data (which calls initLegend internally)
-        const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
-        loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
+        // const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
+        // loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
     }
 
     return { init };
