@@ -636,6 +636,7 @@ const App = (() => {
     // ── Hit testing (optimized with y-clustering) ───────────
     function hitTest(mouseX, mouseY) {
         const w = canvasWrapper.clientWidth;
+        const h = canvasWrapper.clientHeight;
         const range = viewEnd - viewStart;
         const pxPerMs = w / range;
         const x = mouseX;
@@ -644,13 +645,30 @@ const App = (() => {
         const queryX = viewStart + x / pxPerMs;
         if (queryX < viewStart || queryX > viewEnd) return null;
 
-        const candidates = tree.query(queryX);
+        // Use the same filtered set that render() draws, so hover
+        // only matches intervals that are actually visible on screen.
+        const filtered = getFiltered();
 
-        // Use y-coordinate to quickly filter, then find closest
+        // Determine which rows are visible on the canvas.
+        const lastVisibleRow = Math.ceil((h - PADDING_TOP) / (ROW_HEIGHT + GAP));
+
+        // Use y-coordinate to quickly filter, then find closest.
         let best = null;
         let bestDist = Infinity;
 
-        for (const d of candidates) {
+        for (const d of filtered) {
+            // Skip if outside horizontal viewport (same check as render).
+            if (d.end < viewStart || d.start > viewEnd) continue;
+
+            // Skip if outside visible row range (virtualization).
+            if (d._row > lastVisibleRow) continue;
+
+            // Compute the bar's pixel X bounds — only match when the
+            // cursor's X position actually falls within the bar.
+            const x1 = (d.start - viewStart) * pxPerMs;
+            const x2 = (d.end - viewStart) * pxPerMs;
+            if (x < x1 || x > x2) continue;
+
             const barY = PADDING_TOP + d._row * (ROW_HEIGHT + GAP);
             if (mouseY >= barY && mouseY <= barY + ROW_HEIGHT) {
                 const dist = Math.abs(mouseY - (barY + ROW_HEIGHT / 2));
