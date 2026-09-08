@@ -187,6 +187,9 @@ const App = (() => {
     const searchInput = document.getElementById('search');
     const btnGenerate = document.getElementById('btn-generate');
     const btnClear = document.getElementById('btn-clear');
+    const btnLoadFile = document.getElementById('btn-load-file');
+    const fileInput = document.getElementById('file-input');
+    const btnSaveFile = document.getElementById('btn-save-file');
     const btnZoomIn = document.getElementById('zoom-in');
     const btnZoomOut = document.getElementById('zoom-out');
     const btnZoomReset = document.getElementById('zoom-reset');
@@ -204,6 +207,7 @@ const App = (() => {
     let searchTerm = '';
     let hoveredInterval = null;
     let hoveredId = -1;
+    let sourceName = '';  // Tracks where data came from ("generated", filename, etc.)
 
     // Viewport (in timeline-ms coordinates)
     let viewStart = 0;
@@ -293,7 +297,8 @@ const App = (() => {
         const filtered = getFiltered();
 
         // Update stats
-        statsEl.textContent = `${filtered.length} / ${intervals.length} intervals`;
+        const srcTag = sourceName ? ` [${sourceName}]` : '';
+        statsEl.textContent = `${filtered.length} / ${intervals.length} intervals${srcTag}`;
 
         const range = viewEnd - viewStart;
         const pxPerMs = w / range;
@@ -869,17 +874,163 @@ const App = (() => {
         }
         const avgDuration = parseInt(durationInput.value, 10);
         const validDuration = avgDuration > 0 ? avgDuration : DEFAULT_DURATION;
-        loadData(generateSampleData(Math.min(count, MAX_COUNT), validDuration));
+        loadData(generateSampleData(Math.min(count, MAX_COUNT), validDuration), 'generated');
     });
 
     btnClear.addEventListener('click', () => {
-        loadData([]);
+        loadData([], 'cleared');
+    });
+
+    // ── JSON import ─────────────────────────────────────────
+    function parseTimestamp(value) {
+        // Accept: number (ms epoch), ISO string, Date object, or numeric string
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+            const parsed = Date.parse(value);
+            if (!isNaN(parsed)) return parsed;
+        }
+        if (value instanceof Date) return value.getTime();
+        return null;
+    }
+
+    function normalizeInterval(raw, index) {
+        // Flexible normalization: supports several input shapes.
+        // Required: at minimum a start and an end.
+        // Optional: id, name, customer, category, duration (min), metadata.
+
+        const start = parseTimestamp(raw.start);
+        const end = parseTimestamp(raw.end);
+
+        if (start == null || end == null) {
+            return null;  // skip invalid entries
+        }
+
+        // Compute duration in minutes if not provided
+        let duration = raw.duration;
+        if (duration == null) {
+            duration = Math.round((end - start) / MS_PER_MINUTE);
+        }
+
+        return {
+            id: raw.id != null ? raw.id : index,
+            name: raw.name || '',
+            customer: raw.customer || '',
+            category: CATEGORIES.some(c => c.name === raw.category)
+                ? raw.category : (raw.category || 'Confirmed'),
+            start,
+            end,
+            duration,
+            // Preserve any extra fields the user provided
+            ...(raw.metadata ? { metadata: raw.metadata } : {}),
+        };
+    }
+
+    function loadFromData(rawItems, source) {
+        let normalized = [];
+        let skipped = 0;
+
+        for (let i = 0; i < rawItems.length; i++) {
+            const item = normalizeInterval(rawItems[i], i);
+            if (item) {
+                normalized.push(item);
+            } else {
+                skipped++;
+            }
+        }
+
+        if (normalized.length === 0) {
+            alert('No valid intervals found in file.\nEach interval needs "start" and "end" fields.');
+            return;
+        }
+
+        if (skipped > 0) {
+            console.warn(`Skipped ${skipped} invalid interval(s).`);
+        }
+
+        loadData(normalized, source || 'imported');
+    }
+
+    btnLoadFile.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const parsed = JSON.parse(evt.target.result);
+                const items = Array.isArray(parsed) ? parsed : (parsed.intervals || []);
+                loadFromData(items, file.name);
+            } catch (err) {
+                alert('Invalid JSON file: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        // Reset so the same file can be re-imported
+        fileInput.value = '';
+    });
+
+    // ── JSON export ─────────────────────────────────────────
+    function exportToJSON() {
+        if (intervals.length === 0) {
+            alert('No data to export.');
+            return;
+        }
+
+        const exportData = intervals.map((d) => {
+            const obj = {
+                name: d.name,
+                customer: d.customer,
+                category: d.category,
+                start: new Date(d.start).toISOString(),
+                end: new Date(d.end).toISOString(),
+                duration: d.duration,
+            };
+            // Preserve metadata if present
+            if (d.metadata) {
+                obj.metadata = d.metadata;
+            }
+            return obj;
+        });
+
+        const json = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'bookings.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    btnSaveFile.addEventListener('click', exportToJSON);
+
+    // ── Load default example ────────────────────────────────
+    const btnLoadDefault = document.getElementById('btn-load-default');
+    btnLoadDefault.addEventListener('click', () => {
+        fetch('data/example.json')
+            .then((res) => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then((data) => {
+                loadFromData(data, 'example.json');
+            })
+            .catch((err) => {
+                alert('Could not load example data:\n' + err.message);
+            });
     });
 
     // ── Data management ─────────────────────────────────────
-    function loadData(newIntervals) {
+    function loadData(newIntervals, source) {
         tree = new IntervalTree();
         intervals = newIntervals.map((d) => ({ ...d }));
+        sourceName = source || '';
         for (const d of intervals) {
             tree.insert(d.start, d.end, d);
         }
@@ -910,7 +1061,7 @@ const App = (() => {
 
         // Generate initial sample data
         const initialDuration = parseInt(durationInput.value, 10) || DEFAULT_DURATION;
-        loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration));
+        loadData(generateSampleData(INITIAL_SAMPLE_COUNT, initialDuration), 'generated');
     }
 
     return { init };

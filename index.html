@@ -27,6 +27,10 @@
           <input type="number" id="duration-input" value="60" min="1" max="1440" />
         </label>
         <button id="btn-generate" title="Generate sample data">Generate Data</button>
+        <button id="btn-load-file" title="Import JSON file">Import</button>
+        <input type="file" id="file-input" accept=".json,application/json" hidden />
+        <button id="btn-save-file" title="Export current data as JSON">Export</button>
+        <button id="btn-load-default" title="Load example data from data/example.json">Load Example</button>
         <button id="btn-clear" title="Clear all data">Clear</button>
       </div>
     </header>
