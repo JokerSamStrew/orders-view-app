@@ -300,6 +300,8 @@ button:hover { background: var(--border); }
 #popup-content {
   font-size: 13px;
   line-height: 1.6;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 #popup-content .popup-title {
   font-size: 15px;
