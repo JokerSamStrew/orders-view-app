@@ -920,6 +920,7 @@ const App = (() => {
     let dragStartY = 0;
     let dragViewStart = 0;
     let dragViewEnd = 0;
+    let dragViewRowOffset = 0;
     let wasDrag = false;
     const DRAG_THRESHOLD = 4; // pixels before we consider it a drag
 
@@ -931,6 +932,7 @@ const App = (() => {
         dragStartY = e.clientY;
         dragViewStart = viewStart;
         dragViewEnd = viewEnd;
+        dragViewRowOffset = viewRowOffset;
         canvasWrapper.classList.add('dragging');
     });
 
@@ -945,11 +947,20 @@ const App = (() => {
             if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
                 wasDrag = true;
             }
-            const range = dragViewEnd - dragViewStart;
-            const pxPerMs = canvasWrapper.clientWidth / range;
-            const msShift = -dx / pxPerMs;
-            viewStart = dragViewStart + msShift;
-            viewEnd = dragViewEnd + msShift;
+            // Horizontal drag → pan time
+            if (Math.abs(dx) > DRAG_THRESHOLD) {
+                const range = dragViewEnd - dragViewStart;
+                const pxPerMs = canvasWrapper.clientWidth / range;
+                const msShift = -dx / pxPerMs;
+                viewStart = dragViewStart + msShift;
+                viewEnd = dragViewEnd + msShift;
+            }
+            // Vertical drag → scroll rows (proportional to drag distance)
+            if (Math.abs(dy) > DRAG_THRESHOLD) {
+                const rowPx = ROW_HEIGHT + GAP;
+                const rowsToScroll = Math.round(dy / rowPx);
+                viewRowOffset = Math.max(0, dragViewRowOffset + rowsToScroll);
+            }
             render();
             return;
         }
@@ -968,15 +979,6 @@ const App = (() => {
             hideTooltip();
         }
         render();
-    });
-
-    canvas.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        isDragging = true;
-        dragStartX = e.clientX;
-        dragViewStart = viewStart;
-        dragViewEnd = viewEnd;
-        canvasWrapper.classList.add('dragging');
     });
 
     window.addEventListener('mouseup', () => {
@@ -1053,27 +1055,15 @@ const App = (() => {
         }
     });
 
-    // ── Zoom with wheel ─────────────────────────────────────
+    // ── Scroll rows with wheel ──────────────────────────────
     canvas.addEventListener(
         'wheel',
         (e) => {
             e.preventDefault();
-            const rect = canvasWrapper.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const range = canvasWrapper.clientWidth;
-            const pxPerMs = range / (viewEnd - viewStart);
-            const msAtCursor = viewStart + mx / pxPerMs;
-
-            const zoomFactor = e.deltaY > 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
-            const newRange = Math.max(
-                MIN_ZOOM_MS,
-                Math.min(MAX_ZOOM_MS, (viewEnd - viewStart) * zoomFactor)
+            viewRowOffset = Math.max(
+                0,
+                viewRowOffset + Math.sign(e.deltaY)
             );
-
-            viewStart = msAtCursor - mx / (range / newRange);
-            viewEnd = viewStart + newRange;
-
-            updateZoomLevel();
             render();
         },
         { passive: false }

@@ -38,8 +38,8 @@ Open http://localhost:8080.
 
 | Control | Action |
 |---|---|
-| **Scroll wheel** | Zoom in/out (anchored to cursor) |
-| **Click + drag** | Pan horizontally |
+| **Scroll wheel** | Scroll rows up/down |
+| **Click + drag** | Pan time left/right |
 | **Click bar** | Open detail popup (modal) |
 | **← → keys** | Pan 10% of current viewport width |
 | **+ / − keys** | Zoom in/out |
