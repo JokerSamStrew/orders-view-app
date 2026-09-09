@@ -221,6 +221,8 @@ const App = (() => {
     const btnZoomOut = document.getElementById('zoom-out');
     const btnZoomReset = document.getElementById('zoom-reset');
     const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnScrollUp = document.getElementById('scroll-up');
+    const btnScrollDown = document.getElementById('scroll-down');
     const zoomLevelEl = document.getElementById('zoom-level');
     const canvasWrapper = document.getElementById('canvas-wrapper');
     const miniMapCanvas = document.getElementById('minimap');
@@ -252,6 +254,9 @@ const App = (() => {
     let viewEnd = DEFAULT_VIEW_MS;
     const MIN_ZOOM = MIN_ZOOM_MS;
     const MAX_ZOOM = MAX_ZOOM_MS;
+
+    // Vertical scroll state (row offset — which row index is at the top)
+    let viewRowOffset = 0;
 
     // Layout constants (px) — re-exported from module-scope constants
     // ROW_HEIGHT, GAP, BAR_RADIUS, PADDING_LEFT, PADDING_TOP,
@@ -348,14 +353,12 @@ const App = (() => {
         drawTimeTicks(viewStart, viewEnd, pxPerMs, w, h);
 
         // ── Virtualization: only render visible rows ──────────
-        const firstVisibleRow = Math.max(
-            0,
-            Math.floor((PADDING_TOP - PADDING_TOP) / (ROW_HEIGHT + GAP))
-        );
         const labelTop = h - TICK_HEIGHT;                     // Y where time labels start
-        const lastVisibleRow = Math.max(
-            0,
-            Math.floor((labelTop - PADDING_TOP - ROW_HEIGHT) / (ROW_HEIGHT + GAP))
+        const visibleRowSpan = Math.floor((labelTop - PADDING_TOP) / (ROW_HEIGHT + GAP));
+        const firstVisibleRow = Math.max(0, viewRowOffset);
+        const lastVisibleRow = Math.min(
+            viewRowOffset + visibleRowSpan,
+            filtered.length > 0 ? Math.max(...filtered.map(d => d._row)) + 1 : 0
         );
 
         // Build a row-indexed map for O(1) row lookup
@@ -369,7 +372,7 @@ const App = (() => {
 
         // Draw bars (only visible rows)
         for (const [row, items] of rowMap) {
-            const y = PADDING_TOP + row * (ROW_HEIGHT + GAP);
+            const y = PADDING_TOP + (row - viewRowOffset) * (ROW_HEIGHT + GAP);
             for (const d of items) {
                 // Skip if outside horizontal viewport
                 if (d.end < viewStart || d.start > viewEnd) continue;
@@ -839,14 +842,10 @@ const App = (() => {
         // only matches intervals that are actually visible on screen.
         const filtered = getFiltered();
 
-        // Determine which rows are visible on the canvas.
-        const labelTop = h - TICK_HEIGHT;
-        const lastVisibleRow = Math.max(
-            0,
-            Math.floor((labelTop - PADDING_TOP - ROW_HEIGHT) / (ROW_HEIGHT + GAP))
-        );
-
         // Use y-coordinate to quickly filter, then find closest.
+        const labelTop = h - TICK_HEIGHT;
+        const visibleRowSpan = Math.floor((labelTop - PADDING_TOP) / (ROW_HEIGHT + GAP));
+        const lastVisibleRow = viewRowOffset + visibleRowSpan;
         let best = null;
         let bestDist = Infinity;
 
@@ -855,7 +854,7 @@ const App = (() => {
             if (d.end < viewStart || d.start > viewEnd) continue;
 
             // Skip if outside visible row range (virtualization).
-            if (d._row > lastVisibleRow) continue;
+            if (d._row < viewRowOffset || d._row > lastVisibleRow) continue;
 
             // Compute the bar's pixel X bounds — only match when the
             // cursor's X position actually falls within the bar.
@@ -863,7 +862,7 @@ const App = (() => {
             const x2 = (d.end - viewStart) * pxPerMs;
             if (x < x1 || x > x2) continue;
 
-            const barY = PADDING_TOP + d._row * (ROW_HEIGHT + GAP);
+            const barY = PADDING_TOP + (d._row - viewRowOffset) * (ROW_HEIGHT + GAP);
             if (mouseY >= barY && mouseY <= barY + ROW_HEIGHT) {
                 const dist = Math.abs(mouseY - (barY + ROW_HEIGHT / 2));
                 if (dist < bestDist) {
@@ -1008,6 +1007,7 @@ const App = (() => {
     document.addEventListener('keydown', (e) => {
         const panStep = PAN_STEP_MS; // 1 hour
         const range = viewEnd - viewStart;
+        const rowStep = 1; // rows per key press
 
         switch (e.key) {
             case 'ArrowLeft':
@@ -1020,6 +1020,16 @@ const App = (() => {
                 e.preventDefault();
                 viewStart += panStep;
                 viewEnd += panStep;
+                render();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                viewRowOffset = Math.max(0, viewRowOffset - rowStep);
+                render();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                viewRowOffset += rowStep;
                 render();
                 break;
             case '+':
@@ -1075,6 +1085,14 @@ const App = (() => {
 
     btnZoomIn.addEventListener('click', () => zoomBy(ZOOM_FACTOR_IN));
     btnZoomOut.addEventListener('click', () => zoomBy(ZOOM_FACTOR_OUT));
+    btnScrollUp.addEventListener('click', () => {
+        viewRowOffset = Math.max(0, viewRowOffset - 1);
+        render();
+    });
+    btnScrollDown.addEventListener('click', () => {
+        viewRowOffset += 1;
+        render();
+    });
     btnZoomReset.addEventListener('click', () => {
         if (intervals.length > 0) {
             const minStart = Math.min(...intervals.map((d) => d.start));
@@ -1087,6 +1105,7 @@ const App = (() => {
             viewEnd = DEFAULT_VIEW_MS;
         }
         updateZoomLevel();
+        viewRowOffset = 0;  // reset vertical scroll on reset
         render();
     });
 
