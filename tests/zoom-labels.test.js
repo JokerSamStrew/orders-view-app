@@ -71,20 +71,20 @@ function determineLabelConfig(viewStart, viewEnd) {
 function buildLabel(date, labelFormat) {
   switch (labelFormat) {
     case 'time':
-      return date.toLocaleTimeString([], {
+      return date.toLocaleTimeString('en', {
         hour: '2-digit',
         minute: '2-digit',
       });
     case 'datetime':
       return (
-        date.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+        date.toLocaleDateString('en', { month: 'short', day: 'numeric' }) +
         ' ' +
-        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        date.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })
       );
     case 'date':
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString('en', { month: 'short', day: 'numeric' });
     case 'month':
-      return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
+      return date.toLocaleDateString('en', { month: 'short', year: 'numeric' });
     case 'year':
       return String(date.getFullYear());
     default:
