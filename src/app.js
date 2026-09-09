@@ -220,6 +220,7 @@ const App = (() => {
     const btnZoomIn = document.getElementById('zoom-in');
     const btnZoomOut = document.getElementById('zoom-out');
     const btnZoomReset = document.getElementById('zoom-reset');
+    const btnToggleLegend = document.getElementById('btn-toggle-legend');
     const btnFullscreen = document.getElementById('btn-fullscreen');
     const btnScrollUp = document.getElementById('scroll-up');
     const btnScrollDown = document.getElementById('scroll-down');
@@ -248,6 +249,9 @@ const App = (() => {
 
     // Fullscreen / compact mode
     let isFullscreen = false;
+
+    // Legend visibility
+    let isLegendVisible = true;
 
     // Viewport (in timeline-ms coordinates)
     let viewStart = 0;
@@ -1117,6 +1121,15 @@ const App = (() => {
         resize();  // re-measure canvas-wrapper now that layout has changed
     }
     btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    // ── Legend toggle (show/hide legend bar) ──────────────
+    function toggleLegendVisibility() {
+        isLegendVisible = !isLegendVisible;
+        legendEl.classList.toggle('hidden', !isLegendVisible);
+        btnToggleLegend.title = isLegendVisible ? 'Hide legend' : 'Show legend';
+        resize();  // re-measure canvas-wrapper now that layout has changed
+    }
+    btnToggleLegend.addEventListener('click', toggleLegendVisibility);
 
     // ── Mini-map click to navigate ────────────────────────
     if (miniMapCanvas) {
