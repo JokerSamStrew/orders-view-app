@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="src/sl_icon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Timeline Viewer</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Toolbar -->
+    <header id="toolbar">
+      <div class="toolbar-left">
+        <h1>📅 Booking Timeline</h1>
+        <span id="stats"></span>
+      </div>
+      <div class="toolbar-center">
+        <input type="text" id="search" placeholder="Search by name, customer, or status…" />
+      </div>
+      <div class="toolbar-right">
+        <label class="input-group">
+          <span>Count:</span>
+          <input type="number" id="count-input" value="100" min="1" max="50000" />
+        </label>
+        <label class="input-group">
+          <span>Avg Duration (min):</span>
+          <input type="number" id="duration-input" value="500"/>
+        </label>
+        <button id="btn-generate" title="Generate sample data">Generate Data</button>
+        <button id="btn-load-file" title="Import JSON file">Import</button>
+        <input type="file" id="file-input" accept=".json,application/json" hidden />
+        <button id="btn-save-file" title="Export current data as JSON">Export</button>
+        <button id="btn-load-default" title="Load example data from data/example.json">Load Example</button>
+        <button id="btn-clear" title="Clear all data">Clear</button>
+      </div>
+    </header>
+
+    <!-- Legend -->
+    <div id="legend" class="hidden"></div>
+
+    <!-- Main canvas -->
+    <div id="canvas-wrapper">
+      <canvas id="canvas"></canvas>
+      <!-- Tooltip (positioned absolutely over canvas) -->
+      <div id="tooltip" class="hidden"></div>
+    </div>
+
+    <!-- Mini-map (overview) -->
+    <div id="minimap-wrapper">
+      <canvas id="minimap"></canvas>
+      <span id="time-range"></span>
+    </div>
+
+    <!-- Zoom controls -->
+    <div id="zoom-controls">
+      <button id="scroll-up" title="Scroll up (↑)">▲</button>
+      <button id="zoom-in" title="Zoom in (+)">+</button>
+      <button id="zoom-reset" title="Reset view (0)">⟲</button>
+      <button id="zoom-out" title="Zoom out (−)">−</button>
+      <button id="scroll-down" title="Scroll down (↓)">▼</button>
+      <span id="zoom-level">100%</span>
+      <button id="btn-toggle-legend" title="Toggle legend visibility" class="icon-btn">☰</button>
+      <button id="btn-fullscreen" title="Hide toolbar & minimap (F)" class="icon-btn">⛶</button>
+    </div>
+  </div>
+
+  <!-- Interval detail popup (modal) -->
+  <div id="popup-overlay" class="hidden">
+    <div id="popup">
+      <button id="popup-close" title="Close (Esc)">✕</button>
+      <div id="popup-content"></div>
+    </div>
+  </div>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
