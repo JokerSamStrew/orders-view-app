@@ -374,18 +374,33 @@ const App = (() => {
             }
         }
 
-        // Draw bars (only visible rows)
+        // ── Draw row numbers on the left ───────────────────
+        const ROW_NUM_WIDTH = 36;
+        ctx.fillStyle = '#ffffff22';
+        ctx.fillRect(0, PADDING_TOP, ROW_NUM_WIDTH, labelTop - PADDING_TOP);
+        ctx.fillStyle = '#ffffff44';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        for (let r = firstVisibleRow; r <= lastVisibleRow; r++) {
+            const y = PADDING_TOP + (r - viewRowOffset) * (ROW_HEIGHT + GAP);
+            if (y + ROW_HEIGHT < PADDING_TOP || y > labelTop) continue;
+            ctx.fillText(String(r + 1), ROW_NUM_WIDTH / 2, y + 16);
+        }
+        ctx.textAlign = 'left';
+
+        // ── Draw bars (only visible rows)
         for (const [row, items] of rowMap) {
             const y = PADDING_TOP + (row - viewRowOffset) * (ROW_HEIGHT + GAP);
+            const barX1 = ROW_NUM_WIDTH;  // shift bars right past row numbers
             for (const d of items) {
                 // Skip if outside horizontal viewport
                 if (d.end < viewStart || d.start > viewEnd) continue;
 
-                const x1 = (d.start - viewStart) * pxPerMs;
-                const x2 = (d.end - viewStart) * pxPerMs;
+                const x1 = (d.start - viewStart) * pxPerMs + barX1;
+                const x2 = (d.end - viewStart) * pxPerMs + barX1;
                 const barW = Math.max(x2 - x1, 2);
 
-                if (x2 < 0 || x1 > w) continue;
+                if (x2 < barX1 || x1 > w) continue;
 
                 const color = categoryColorMap.get(d.category) || '#888';
                 const isHovered = d.id === hoveredId;
@@ -831,12 +846,18 @@ const App = (() => {
     });
 
     // ── Hit testing (optimized with y-clustering) ───────────
+    const ROW_NUM_WIDTH = 36;
+
     function hitTest(mouseX, mouseY) {
         const w = canvasWrapper.clientWidth;
         const h = canvasWrapper.clientHeight;
         const range = viewEnd - viewStart;
         const pxPerMs = w / range;
-        const x = mouseX;
+
+        // Ignore clicks on the row-number column
+        if (mouseX < ROW_NUM_WIDTH) return null;
+
+        const x = mouseX - ROW_NUM_WIDTH;  // offset past row numbers
 
         // Only test within visible range
         const queryX = viewStart + x / pxPerMs;
