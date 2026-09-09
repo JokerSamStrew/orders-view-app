@@ -657,12 +657,19 @@ const App = (() => {
                             .join(', ');
                     return `<div class="popup-row">
       <span class="popup-label">${escapedKey}</span>
-      <span class="popup-value popup-sub">${subItems}</span>
+      <span class="popup-value-with-copy">
+        <span class="popup-value popup-sub">${subItems}</span>
+        <button class="copy-btn" data-copy="${escapeHtml(subItems)}" title="Copy metadata">📋</button>
+      </span>
     </div>`;
                 }
+                const leafValue = escapeHtml(String(value));
                 return `<div class="popup-row">
       <span class="popup-label">${escapedKey}</span>
-      <span class="popup-value">${escapeHtml(String(value))}</span>
+      <span class="popup-value-with-copy">
+        <span class="popup-value">${leafValue}</span>
+        <button class="copy-btn" data-copy="${leafValue}" title="Copy metadata">📋</button>
+      </span>
     </div>`;
             })
             .join('');
@@ -687,27 +694,45 @@ const App = (() => {
       <div class="popup-title">${escapeHtml(d.name)}${linkHtml}</div>
       <div class="popup-row">
         <span class="popup-label">Category</span>
-        <span class="popup-value"><span class="popup-cat" style="background:${color}"></span>${d.category}</span>
+        <span class="popup-value-with-copy">
+          <span class="popup-value"><span class="popup-cat" style="background:${color}"></span>${d.category}</span>
+          <button class="copy-btn" data-copy="${escapeHtml(String(d.category))}" title="Copy category">📋</button>
+        </span>
       </div>
       <div class="popup-row">
         <span class="popup-label">Customer</span>
-        <span class="popup-value">${escapeHtml(d.customer)}</span>
+        <span class="popup-value-with-copy">
+          <span class="popup-value">${escapeHtml(d.customer)}</span>
+          <button class="copy-btn" data-copy="${escapeHtml(d.customer)}" title="Copy customer">📋</button>
+        </span>
       </div>
       <div class="popup-row">
         <span class="popup-label">Start</span>
-        <span class="popup-value">${startStr}</span>
+        <span class="popup-value-with-copy">
+          <span class="popup-value">${startStr}</span>
+          <button class="copy-btn" data-copy="${escapeHtml(startStr)}" title="Copy start time">📋</button>
+        </span>
       </div>
       <div class="popup-row">
         <span class="popup-label">End</span>
-        <span class="popup-value">${endStr}</span>
+        <span class="popup-value-with-copy">
+          <span class="popup-value">${endStr}</span>
+          <button class="copy-btn" data-copy="${escapeHtml(endStr)}" title="Copy end time">📋</button>
+        </span>
       </div>
       <div class="popup-row">
         <span class="popup-label">Duration</span>
-        <span class="popup-value">${d.duration} min</span>
+        <span class="popup-value-with-copy">
+          <span class="popup-value">${d.duration} min</span>
+          <button class="copy-btn" data-copy="${d.duration} min" title="Copy duration">📋</button>
+        </span>
       </div>
       <div class="popup-row">
         <span class="popup-label">ID</span>
-        <span class="popup-value">${d.id}</span>
+        <span class="popup-value-with-copy">
+          <span class="popup-value">${d.id}</span>
+          <button class="copy-btn" data-copy="${d.id}" title="Copy ID">📋</button>
+        </span>
       </div>
       ${d.metadata ? renderMetadata(d.metadata) : ''}
     `;
@@ -757,6 +782,39 @@ const App = (() => {
         if (e.key === 'Escape' && popupInterval) {
             hidePopup();
         }
+    });
+
+    // ── Copy-to-clipboard on popup value rows ─────────────
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+            // success
+        }).catch(() => {
+            // Fallback for older browsers: select text in a temp textarea
+            const ta = document.createElement('textarea');
+            ta.value = String(text);
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        });
+    }
+
+    popupContent.addEventListener('click', (e) => {
+        const btn = e.target.closest('.copy-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        const text = btn.getAttribute('data-copy');
+        copyToClipboard(text);
+
+        // Visual feedback: flash green, then revert
+        btn.classList.add('copied');
+        btn.textContent = '✓';
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '📋';
+        }, 1200);
     });
 
     // ── Hit testing (optimized with y-clustering) ───────────

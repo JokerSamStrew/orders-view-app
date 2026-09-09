@@ -342,6 +342,42 @@ button:hover { background: var(--border); }
   color: var(--text);
   word-break: break-word;
 }
+/* ── Copy button on popup rows ─────────────────────────── */
+#popup-content .popup-value-with-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+#popup-content .copy-btn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: background .15s, color .15s;
+  opacity: 0;
+}
+#popup-content .popup-row:hover .copy-btn {
+  opacity: 1;
+}
+#popup-content .copy-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+#popup-content .copy-btn.copied {
+  background: var(--accent2);
+  color: #fff;
+  opacity: 1;
+}
 #popup-content .popup-cat {
   display: inline-block;
   width: 10px;
