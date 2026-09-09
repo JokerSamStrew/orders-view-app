@@ -15,3 +15,4 @@ pnpx vitest run
 ## Rules
 - Do not add dependencies unless necessary.
 - Run tests js or html change
+- Update readme.md on new feature if it big enough

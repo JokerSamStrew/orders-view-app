@@ -14,6 +14,7 @@ A single-page canvas-based application for visualizing and exploring booking tim
 - **Dynamic category legend** — categories and their colors are derived from your data; click a legend item to toggle that category on/off
 - **JSON import / export** — load arbitrary JSON files, save your current view
 - **Interval detail popup** — click any bar to open a detailed modal with all fields (including `metadata`)
+- **Full-screen mode** — hide toolbar & minimap for distraction-free viewing (button or `F` key)
 - **Auto-fit** — Generate, Load Example, and Reset buttons auto-scale the viewport to the data range
 
 ## Tech
@@ -43,6 +44,7 @@ Open http://localhost:8080.
 | **← → keys** | Pan 1 hour at a time |
 | **+ / − keys** | Zoom in/out |
 | **0 key** | Reset view |
+| **F key** | Toggle full-screen mode (hides toolbar & minimap) |
 | **Esc** | Close popup |
 | **Hover bar** | Show tooltip |
 | **Mini-map click** | Jump to time range |
@@ -57,7 +59,8 @@ Click **Import** to load a `.json` file. Each interval must have at least `start
 - `start` / `end` — ISO 8601 strings (`"2025-09-01T09:00:00Z"`), millisecond epoch numbers, or Date objects
 - `duration` — optional (minutes); auto-computed from `end − start` if omitted
 - `category` — optional (string); if present, a deterministic color is assigned. If omitted, bars render grey.
-- `name`, `customer`, `id`, `metadata` — optional free-form fields preserved through import/export
+- `name`, `customer`, `id`, `metadata`, `link` — optional free-form fields preserved through import/export
+- `link` — optional URL string; shown as an ↗ external link in the detail popup
 
 Top-level JSON can be an array `[ {...}, ... ]` or an object with an `intervals` key `{ "intervals": [...] }`.
 
