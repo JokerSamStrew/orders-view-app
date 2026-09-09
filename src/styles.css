@@ -237,6 +237,15 @@ button:hover { background: var(--border); }
   z-index: 10;
 }
 #zoom-controls button { padding: 4px 10px; font-size: 16px; }
+#zoom-controls .icon-btn {
+  font-size: 14px;
+  padding: 4px 8px;
+  margin-left: 4px;
+  border-left: 1px solid var(--border);
+  color: var(--text-dim);
+  transition: color .15s, background .15s;
+}
+#zoom-controls .icon-btn:hover { color: var(--text); background: var(--border); }
 #zoom-level { font-size: 11px; color: var(--text-dim); min-width: 42px; text-align: center; }
 
 /* ── Popup (modal) ────────────────────────────────────── */
@@ -414,3 +423,16 @@ button:hover { background: var(--border); }
 ::-webkit-scrollbar { height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Fullscreen / compact mode ─────────────────────────── */
+body.fullscreen-mode #toolbar,
+body.fullscreen-mode #legend,
+body.fullscreen-mode #minimap-wrapper {
+  display: none !important;
+}
+body.fullscreen-mode #zoom-controls {
+  bottom: 12px;
+}
+body.fullscreen-mode #canvas-wrapper {
+  flex: 1;
+}

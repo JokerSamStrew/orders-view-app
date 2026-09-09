@@ -220,6 +220,7 @@ const App = (() => {
     const btnZoomIn = document.getElementById('zoom-in');
     const btnZoomOut = document.getElementById('zoom-out');
     const btnZoomReset = document.getElementById('zoom-reset');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
     const zoomLevelEl = document.getElementById('zoom-level');
     const canvasWrapper = document.getElementById('canvas-wrapper');
     const miniMapCanvas = document.getElementById('minimap');
@@ -242,6 +243,9 @@ const App = (() => {
     let hoveredInterval = null;
     let hoveredId = -1;
     let sourceName = '';  // Tracks where data came from ("generated", filename, etc.)
+
+    // Fullscreen / compact mode
+    let isFullscreen = false;
 
     // Viewport (in timeline-ms coordinates)
     let viewStart = 0;
@@ -348,8 +352,10 @@ const App = (() => {
             0,
             Math.floor((PADDING_TOP - PADDING_TOP) / (ROW_HEIGHT + GAP))
         );
-        const lastVisibleRow = Math.ceil(
-            (h - PADDING_TOP) / (ROW_HEIGHT + GAP)
+        const labelTop = h - TICK_HEIGHT;                     // Y where time labels start
+        const lastVisibleRow = Math.max(
+            0,
+            Math.floor((labelTop - PADDING_TOP - ROW_HEIGHT) / (ROW_HEIGHT + GAP))
         );
 
         // Build a row-indexed map for O(1) row lookup
@@ -834,7 +840,11 @@ const App = (() => {
         const filtered = getFiltered();
 
         // Determine which rows are visible on the canvas.
-        const lastVisibleRow = Math.ceil((h - PADDING_TOP) / (ROW_HEIGHT + GAP));
+        const labelTop = h - TICK_HEIGHT;
+        const lastVisibleRow = Math.max(
+            0,
+            Math.floor((labelTop - PADDING_TOP - ROW_HEIGHT) / (ROW_HEIGHT + GAP))
+        );
 
         // Use y-coordinate to quickly filter, then find closest.
         let best = null;
@@ -1022,6 +1032,10 @@ const App = (() => {
             case '0':
                 btnZoomReset.click();
                 break;
+            case 'f':
+            case 'F':
+                toggleFullscreen();
+                break;
         }
     });
 
@@ -1075,6 +1089,15 @@ const App = (() => {
         updateZoomLevel();
         render();
     });
+
+    // ── Fullscreen toggle (hide toolbar + minimap) ──────────
+    function toggleFullscreen() {
+        isFullscreen = !isFullscreen;
+        document.body.classList.toggle('fullscreen-mode', isFullscreen);
+        btnFullscreen.title = isFullscreen ? 'Show toolbar & minimap (F)' : 'Hide toolbar & minimap (F)';
+        resize();  // re-measure canvas-wrapper now that layout has changed
+    }
+    btnFullscreen.addEventListener('click', toggleFullscreen);
 
     // ── Mini-map click to navigate ────────────────────────
     if (miniMapCanvas) {
