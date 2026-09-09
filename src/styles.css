@@ -306,6 +306,23 @@ button:hover { background: var(--border); }
   font-weight: 600;
   margin-bottom: 12px;
   padding-right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#popup-content .popup-link {
+  margin-left: auto;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background .15s;
+  cursor: pointer;
+}
+#popup-content .popup-link:hover {
+  background: var(--accent)22;
 }
 #popup-content .popup-row {
   display: flex;

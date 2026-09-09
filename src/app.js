@@ -680,8 +680,11 @@ const App = (() => {
         const endStr = new Date(d.end).toLocaleString();
 
         // Always update content first (even if popup is already visible)
+        const linkHtml = d.link
+            ? `<a class="popup-link" href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer" title="Open link">↗</a>`
+            : '';
         popupContent.innerHTML = `
-      <div class="popup-title">${escapeHtml(d.name)}</div>
+      <div class="popup-title">${escapeHtml(d.name)}${linkHtml}</div>
       <div class="popup-row">
         <span class="popup-label">Category</span>
         <span class="popup-value"><span class="popup-cat" style="background:${color}"></span>${d.category}</span>
@@ -1120,6 +1123,7 @@ const App = (() => {
             name: raw.name || '',
             customer: raw.customer || '',
             category: raw.category || '',  // empty string = no category (grey bar)
+            link: raw.link,
             start,
             end,
             duration,
