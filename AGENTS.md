@@ -10,7 +10,7 @@ nohup pnpm start > /tmp/booking-server.log 2>&1 & echo "Server started, PID: $!"
 pkill -9 -f "live-server . --port=8080" && echo "Server forcefully stopped" || echo "No server running"
 
 ## Run tests
-pnpx test
+pnpm test
 
 ## Rules
 - Do not add dependencies unless necessary.

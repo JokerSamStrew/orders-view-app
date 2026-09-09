@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "start": "live-server . --port=8080",
-    "deploy": "gh-pages -d ."
+    "deploy": "gh-pages -d dist"
   },
   "keywords": [],
   "author": "",
