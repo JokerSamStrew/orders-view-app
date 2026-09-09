@@ -1009,8 +1009,8 @@ const App = (() => {
 
     // ── Keyboard shortcuts ──────────────────────────────────
     document.addEventListener('keydown', (e) => {
-        const panStep = PAN_STEP_MS; // 1 hour
         const range = viewEnd - viewStart;
+        const panStep = range * 0.1; // 10% of current viewport per arrow press
         const rowStep = 1; // rows per key press
 
         switch (e.key) {

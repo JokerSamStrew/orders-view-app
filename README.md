@@ -41,7 +41,7 @@ Open http://localhost:8080.
 | **Scroll wheel** | Zoom in/out (anchored to cursor) |
 | **Click + drag** | Pan horizontally |
 | **Click bar** | Open detail popup (modal) |
-| **← → keys** | Pan 1 hour at a time |
+| **← → keys** | Pan 10% of current viewport width |
 | **+ / − keys** | Zoom in/out |
 | **0 key** | Reset view |
 | **F key** | Toggle full-screen mode (hides toolbar & minimap) |
