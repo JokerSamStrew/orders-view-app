@@ -443,7 +443,7 @@ const App = (() => {
 
         // ── Draw vertical hover guide ────────────────────────
         if (hoveredInterval) {
-            const hx = (hoveredInterval.start - viewStart) * pxPerMs;
+            const hx = (hoveredInterval.start - viewStart) * pxPerMs + ROW_NUM_WIDTH;
             ctx.strokeStyle = '#ffffff44';
             ctx.lineWidth = 1;
             ctx.setLineDash([4, 4]);
